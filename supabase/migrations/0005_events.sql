@@ -67,22 +67,19 @@ create table public.checklist_checks (
 create function public.seed_checklist(p_team uuid) returns void
 language sql security definer set search_path = public as $$
   insert into checklist_items (team_id, phase, text, sort_order) values
-    (p_team, 'prep', 'Benzín a olej (zmes) pripravené', 10),
-    (p_team, 'prep', 'Reťaz skontrolovaná a namazaná', 20),
-    (p_team, 'prep', 'Skrutky kolies a náprav dotiahnuté', 30),
-    (p_team, 'prep', 'Brzdy skontrolované', 40),
-    (p_team, 'prep', 'Náhradné pneumatiky a ráfiky', 50),
-    (p_team, 'prep', 'Transpondér nabitý', 60),
-    (p_team, 'prep', 'Výstroj jazdca (prilba, kombinéza, rukavice)', 70),
-    (p_team, 'pre_run', 'Tlaky v pneumatikách', 10),
-    (p_team, 'pre_run', 'Palivo v nádrži', 20),
-    (p_team, 'pre_run', 'Napnutie reťaze', 30),
-    (p_team, 'pre_run', 'Transpondér na mieste', 40),
-    (p_team, 'pre_run', 'Jazdec pripravený', 50),
-    (p_team, 'post_run', 'Tlaky za tepla', 10),
-    (p_team, 'post_run', 'Spätná väzba od jazdca', 20),
-    (p_team, 'post_run', 'Kontrola reťaze a bŕzd', 30),
-    (p_team, 'post_run', 'Kontrola poškodení', 40);
+    (p_team, 'prep', 'Dotiahnuť kolesá a náboje', 10),
+    (p_team, 'prep', 'Dotiahnuť osku', 20),
+    (p_team, 'prep', 'Dotiahnuť motor a spojku', 30),
+    (p_team, 'prep', 'Skontrolovať napnutie reťaze, dotiahnuť krytku reťaze', 40),
+    (p_team, 'prep', 'Dotiahnuť karburátor a filter', 50),
+    (p_team, 'prep', 'Dotiahnuť nádrž', 60),
+    (p_team, 'prep', 'Dotiahnuť ostatné skrutky (sedačka, podlaha) – brzdový kotúč a zadný nárazník NEdoťahovať úplne', 70),
+    (p_team, 'pre_run', 'Dotankovať', 10),
+    (p_team, 'pre_run', 'Nafúkať pneumatiky a nastaviť tlaky', 20),
+    (p_team, 'pre_run', 'Skontrolovať napnutie reťaze', 30),
+    (p_team, 'post_run', 'Spätná väzba od jazdca', 10),
+    (p_team, 'post_run', 'Skontrolovať poškodenia', 20),
+    (p_team, 'post_run', 'Ak je čas, vyčistiť motokáru', 30);
 $$;
 
 create function public.trg_team_seed_checklist() returns trigger

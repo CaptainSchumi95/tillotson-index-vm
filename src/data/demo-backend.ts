@@ -128,22 +128,19 @@ function demoSetup(): Pick<DemoDb, 'revisions' | 'variants' | 'fields'> {
 }
 
 const DEFAULT_CHECKLIST: [ChecklistItem['phase'], string][] = [
-  ['prep', 'Benzín a olej (zmes) pripravené'],
-  ['prep', 'Reťaz skontrolovaná a namazaná'],
-  ['prep', 'Skrutky kolies a náprav dotiahnuté'],
-  ['prep', 'Brzdy skontrolované'],
-  ['prep', 'Náhradné pneumatiky a ráfiky'],
-  ['prep', 'Transpondér nabitý'],
-  ['prep', 'Výstroj jazdca (prilba, kombinéza, rukavice)'],
-  ['pre_run', 'Tlaky v pneumatikách'],
-  ['pre_run', 'Palivo v nádrži'],
-  ['pre_run', 'Napnutie reťaze'],
-  ['pre_run', 'Transpondér na mieste'],
-  ['pre_run', 'Jazdec pripravený'],
-  ['post_run', 'Tlaky za tepla'],
+  ['prep', 'Dotiahnuť kolesá a náboje'],
+  ['prep', 'Dotiahnuť osku'],
+  ['prep', 'Dotiahnuť motor a spojku'],
+  ['prep', 'Skontrolovať napnutie reťaze, dotiahnuť krytku reťaze'],
+  ['prep', 'Dotiahnuť karburátor a filter'],
+  ['prep', 'Dotiahnuť nádrž'],
+  ['prep', 'Dotiahnuť ostatné skrutky (sedačka, podlaha) – brzdový kotúč a zadný nárazník NEdoťahovať úplne'],
+  ['pre_run', 'Dotankovať'],
+  ['pre_run', 'Nafúkať pneumatiky a nastaviť tlaky'],
+  ['pre_run', 'Skontrolovať napnutie reťaze'],
   ['post_run', 'Spätná väzba od jazdca'],
-  ['post_run', 'Kontrola reťaze a bŕzd'],
-  ['post_run', 'Kontrola poškodení'],
+  ['post_run', 'Skontrolovať poškodenia'],
+  ['post_run', 'Ak je čas, vyčistiť motokáru'],
 ]
 
 /** Rovnaký predvolený checklist ako seed_checklist() v databáze. */
