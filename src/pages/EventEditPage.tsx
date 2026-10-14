@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useRouter } from '@tanstack/react-router'
-import { Flag, Timer, Trash2 } from 'lucide-react'
+import { Flag, MapPin, Timer, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { KartMultiSelect } from '@/components/team/pickers'
 import { Button } from '@/components/ui/Button'
@@ -10,6 +10,7 @@ import { Field } from '@/components/ui/Field'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { PickerField } from '@/components/ui/PickerField'
 import { useDeleteEvent, useEvents, useSaveEvent } from '@/data/events'
+import { useTracks } from '@/data/tracks'
 import { safe, useCan, useCurrentKart, useCurrentTeam, useKarts } from '@/data/queries'
 import type { EventKind } from '@/data/types'
 import { cn } from '@/lib/cn'
@@ -29,12 +30,15 @@ export function EventEditPage() {
   const del = useDeleteEvent(team?.id ?? '')
   const can = useCan()
   const existing = eventId ? events.data?.find((e) => e.id === eventId) : undefined
+  const tracks = useTracks(team?.id)
+  const libraryTracks = tracks.data ?? []
 
   const [kind, setKind] = useState<EventKind>('race')
   const [name, setName] = useState('')
   const [from, setFrom] = useState(todayIso())
   const [to, setTo] = useState(todayIso())
   const [track, setTrack] = useState('')
+  const [trackId, setTrackId] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
   const [kartIds, setKartIds] = useState<string[]>(kart ? [kart.id] : [])
   const [confirm, setConfirm] = useState(false)
@@ -46,6 +50,7 @@ export function EventEditPage() {
       setFrom(existing.dateFrom)
       setTo(existing.dateTo)
       setTrack(existing.trackName)
+      setTrackId(existing.trackId)
       setNotes(existing.notes)
       setKartIds(existing.karts.map((k) => k.kartId))
     }
@@ -64,6 +69,7 @@ export function EventEditPage() {
         dateFrom: from,
         dateTo: to,
         trackName: track.trim(),
+        trackId,
         notes: notes.trim(),
         kartIds,
       }),
@@ -132,13 +138,46 @@ export function EventEditPage() {
           />
         </div>
 
-        <Field
-          label={t('weekend.track')}
-          placeholder={t('weekend.trackPlaceholder')}
-          value={track}
-          onChange={(e) => setTrack(e.target.value)}
-          maxLength={80}
-        />
+        <Section title={t('weekend.track')}>
+          {libraryTracks.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {libraryTracks.map((tr) => (
+                <button
+                  key={tr.id}
+                  type="button"
+                  aria-pressed={trackId === tr.id}
+                  onClick={() => {
+                    const on = trackId !== tr.id
+                    setTrackId(on ? tr.id : null)
+                    setTrack(on ? tr.name : '')
+                  }}
+                  className={cn(
+                    'flex h-11 items-center gap-2 rounded-[12px] border px-3.5 font-medium transition-colors',
+                    trackId === tr.id
+                      ? 'border-accent bg-accent-soft text-accent-ink'
+                      : 'border-line-strong bg-surface text-ink-2 hover:bg-surface-2',
+                  )}
+                >
+                  <MapPin className="size-4" />
+                  {tr.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <input
+            type="text"
+            aria-label={t('weekend.track')}
+            value={track}
+            onChange={(e) => {
+              setTrack(e.target.value)
+              // Vlastný text = trať mimo knižnice.
+              if (trackId && e.target.value !== libraryTracks.find((x) => x.id === trackId)?.name) setTrackId(null)
+            }}
+            placeholder={t('weekend.trackPlaceholder')}
+            maxLength={80}
+            className="h-[52px] w-full rounded-[14px] border border-line-strong bg-surface px-4 outline-none placeholder:text-ink-3 focus:border-accent focus:shadow-[0_0_0_4px_var(--accent-soft)]"
+          />
+        </Section>
 
         <Section title={t('weekend.karts')}>
           {karts.data && <KartMultiSelect karts={karts.data} value={kartIds} onChange={setKartIds} />}

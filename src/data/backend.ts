@@ -27,6 +27,10 @@ import type {
   TeamPatch,
   TeamEvent,
   TeamRole,
+  Track,
+  TrackInput,
+  TrackSetup,
+  TrackSetupInput,
 } from './types'
 
 export interface AuthUser {
@@ -120,4 +124,14 @@ export interface Backend {
   deleteSession(sessionId: string): Promise<void>
   /** Spätná väzba jazdca – smie aj jazdec bez práva upravovať jazdy. */
   setSessionFeedback(sessionId: string, text: string): Promise<void>
+
+  /** Spoločné trate + vlastné trate tímu. */
+  listTracks(teamId: string): Promise<Track[]>
+  saveTrack(teamId: string, input: TrackInput): Promise<string>
+  deleteTrack(trackId: string): Promise<void>
+
+  /** Všetky setupy k tratiam, ktoré má tím uložené. */
+  listTrackSetups(teamId: string): Promise<TrackSetup[]>
+  saveTrackSetup(teamId: string, input: TrackSetupInput): Promise<string>
+  deleteTrackSetup(setupId: string): Promise<void>
 }

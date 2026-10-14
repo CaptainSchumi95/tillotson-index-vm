@@ -19,6 +19,8 @@ import {
   type RolePreset,
   type SetupValues,
   type Team,
+  type Track,
+  type TrackSetupInput,
 } from './types'
 
 const KEY = 'ti-demo-v2'
@@ -65,6 +67,8 @@ interface DemoVariant {
 }
 
 interface DemoDb {
+  tracks: Track[]
+  trackSetups: (TrackSetupInput & { id: string; teamId: string; updatedAt: string; updatedById: string })[]
   sessions: (SessionInput & { authorId: string })[]
   events: (TeamEvent & { teamId: string })[]
   schedule: ScheduleItem[]
@@ -165,12 +169,12 @@ function demoEvents(): Pick<DemoDb, 'events' | 'schedule' | 'checklist' | 'check
     events: [
       {
         id: 'ev-race', teamId, kind: 'race', name: '3. kolo seriálu T4', dateFrom: day(0), dateTo: day(1),
-        trackName: 'Slovakia Ring', notes: 'Depo č. 14. Technická prebierka do 8:30, transpondéry vyzdvihnúť v kancelárii.',
+        trackName: 'Slovakia Ring', trackId: 'track-sr', notes: 'Depo č. 14. Technická prebierka do 8:30, transpondéry vyzdvihnúť v kancelárii.',
         karts: [{ kartId: 'kart-95', round: 1 }, { kartId: 'kart-51', round: 1 }],
       },
       {
         id: 'ev-test', teamId, kind: 'test', name: 'Tréning – nastavenie prevodu', dateFrom: day(-7), dateTo: day(-7),
-        trackName: 'Slovakia Ring', notes: '', karts: [{ kartId: 'kart-73', round: 1 }],
+        trackName: 'Slovakia Ring', trackId: 'track-sr', notes: '', karts: [{ kartId: 'kart-73', round: 1 }],
       },
     ],
     schedule: [
@@ -185,6 +189,32 @@ function demoEvents(): Pick<DemoDb, 'events' | 'schedule' | 'checklist' | 'check
     checks: checklist.slice(0, 4).map((c) => ({
       eventId: 'ev-race', kartId: 'kart-95', itemId: c.id, round: 0, doneBy: 'p-peter', doneAt: new Date().toISOString(),
     })),
+  }
+}
+
+/** Rovnaké spoločné trate ako v migrácii 0008 + dva setupy tímu pre Slovakia Ring. */
+function demoTracks(): Pick<DemoDb, 'tracks' | 'trackSetups'> {
+  const base = demoSetup().revisions[0].values
+  const daysAgo = (d: number) => new Date(Date.now() - d * 86_400_000).toISOString()
+  return {
+    tracks: [
+      { id: 'track-sr', teamId: null, name: 'Slovakia Ring', location: 'Orechová Potôň, SK', lengthM: null },
+      { id: 'track-kakucs', teamId: null, name: 'Kakucs Ring', location: 'Kakucs, HU', lengthM: null },
+      { id: 'track-vm', teamId: null, name: 'Autodrom Vysoké Mýto', location: 'Vysoké Mýto, CZ', lengthM: null },
+    ],
+    trackSetups: [
+      {
+        id: 'ts-dry', teamId: 'team-demo', trackId: 'track-sr', name: 'Suchá – osvedčený',
+        values: { ...base, tire_rl: 0.88, tire_rr: 0.88 },
+        notes: 'Najlepšie časy v 2. kole. Pri teplom asfalte ubrať vzadu.',
+        updatedAt: daysAgo(20), updatedById: 'p-peter',
+      },
+      {
+        id: 'ts-wet', teamId: 'team-demo', trackId: 'track-sr', name: 'Mokrá trať',
+        values: { ...base, tire_fl: 1.1, tire_fr: 1.1, tire_rl: 1.15, tire_rr: 1.15, track_rear: 1340 },
+        notes: '', updatedAt: daysAgo(45), updatedById: ME,
+      },
+    ],
   }
 }
 
@@ -259,6 +289,7 @@ function seed(): DemoDb {
     ...demoNotesService(),
     ...demoEvents(),
     ...demoSessions(),
+    ...demoTracks(),
     karts: [
       { id: 'kart-95', teamId, number: '95', driverName: 'Adam' },
       { id: 'kart-51', teamId, number: '51', driverName: 'Ema' },
@@ -270,7 +301,7 @@ function seed(): DemoDb {
 function load(): DemoDb {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return { ...demoSetup(), ...demoNotesService(), ...demoEvents(), ...demoSessions(), ...(JSON.parse(raw) as DemoDb) }
+    if (raw) return { ...demoSetup(), ...demoNotesService(), ...demoEvents(), ...demoSessions(), ...demoTracks(), ...(JSON.parse(raw) as DemoDb) }
   } catch {
     /* poškodené dáta – začneme odznova */
   }
@@ -406,6 +437,8 @@ export function createDemoBackend(): Backend {
         db.checks = db.checks.filter((c) => !eventIds.has(c.eventId))
         db.checklist = db.checklist.filter((c) => c.teamId !== teamId)
         db.sessions = db.sessions.filter((s) => !kartIds.has(s.kartId))
+        db.tracks = db.tracks.filter((t) => t.teamId !== teamId)
+        db.trackSetups = db.trackSetups.filter((t) => t.teamId !== teamId)
       })
     },
 
@@ -749,6 +782,64 @@ export function createDemoBackend(): Backend {
             doneBy: ME, doneAt: new Date().toISOString(),
           })
       })
+    },
+
+    async listTracks(teamId) {
+      await delay()
+      return load()
+        .tracks.filter((t) => t.teamId === null || t.teamId === teamId)
+        .sort((a, b) => a.name.localeCompare(b.name))
+    },
+
+    async saveTrack(teamId, input) {
+      await delay()
+      return mutate((db) => {
+        const existing = input.id ? db.tracks.find((t) => t.id === input.id && t.teamId === teamId) : undefined
+        if (existing) {
+          Object.assign(existing, { name: input.name, location: input.location, lengthM: input.lengthM })
+          return existing.id
+        }
+        const id = uid()
+        db.tracks.push({ id, teamId, name: input.name, location: input.location, lengthM: input.lengthM })
+        return id
+      })
+    },
+
+    async deleteTrack(trackId) {
+      await delay()
+      mutate((db) => {
+        db.tracks = db.tracks.filter((t) => t.id !== trackId)
+        db.trackSetups = db.trackSetups.filter((t) => t.trackId !== trackId)
+      })
+    },
+
+    async listTrackSetups(teamId) {
+      await delay()
+      const db = load()
+      return db.trackSetups
+        .filter((t) => t.teamId === teamId)
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        .map(({ teamId: _t, updatedById, ...t }) => ({ ...t, updatedBy: authorOf(db, updatedById) }))
+    },
+
+    async saveTrackSetup(teamId, input) {
+      await delay()
+      return mutate((db) => {
+        const updatedAt = new Date().toISOString()
+        const existing = input.id ? db.trackSetups.find((t) => t.id === input.id) : undefined
+        if (existing) {
+          Object.assign(existing, { name: input.name, values: input.values, notes: input.notes, updatedAt, updatedById: ME })
+          return existing.id
+        }
+        const id = uid()
+        db.trackSetups.push({ ...input, id, teamId, updatedAt, updatedById: ME })
+        return id
+      })
+    },
+
+    async deleteTrackSetup(setupId) {
+      await delay()
+      mutate((db) => (db.trackSetups = db.trackSetups.filter((t) => t.id !== setupId)))
     },
 
     async listSessions(kartId) {

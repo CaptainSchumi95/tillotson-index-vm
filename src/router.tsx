@@ -16,9 +16,11 @@ import { PrivacyPage } from '@/pages/PrivacyPage'
 import { ServicePage } from '@/pages/ServicePage'
 import { SessionEditPage } from '@/pages/SessionEditPage'
 import { SessionPage } from '@/pages/SessionPage'
+import { TrackPage } from '@/pages/TrackPage'
+import { TracksPage } from '@/pages/TracksPage'
+import { TrackSetupEditPage, TrackSetupPage } from '@/pages/TrackSetupPage'
 import { RoleEditorPage } from '@/pages/RoleEditorPage'
 import { RolesPage } from '@/pages/RolesPage'
-import { TracksPage } from '@/pages/PlaceholderPages'
 import { ChecklistTemplatePage } from '@/pages/ChecklistTemplatePage'
 import { EventEditPage } from '@/pages/EventEditPage'
 import { EventPage } from '@/pages/EventPage'
@@ -142,6 +144,16 @@ const routeTree = rootRoute.addChildren([
     page('/setup/fields', SetupFieldsPage),
     page('/setup/variants/$variantId', VariantEditPage),
     page('/tracks', TracksPage),
+    page('/tracks/$trackId', TrackPage),
+    createRoute({
+      getParentRoute: () => shellRoute,
+      path: '/tracks/$trackId/setups/new',
+      component: TrackSetupEditPage,
+      validateSearch: (s: Record<string, unknown>): { from?: 'kart' | 'blank' } =>
+        s.from === 'kart' || s.from === 'blank' ? { from: s.from } : {},
+    }),
+    page('/tracks/$trackId/setups/$setupId', TrackSetupPage),
+    page('/tracks/$trackId/setups/$setupId/edit', TrackSetupEditPage),
     page('/team', TeamPage),
     page('/team/appearance', TeamAppearancePage),
     page('/team/roles', RolesPage),

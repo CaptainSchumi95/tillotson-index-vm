@@ -98,7 +98,7 @@ Predvolené roly: **manažér, šéfmechanik, mechanik, jazdec** (jazdec bez `se
 
 **→ MVP hotové (fázy 1–5) ✅ – pripravené na prvý ostrý víkend.**
 
-### Fáza 6 – Trate
+### Fáza 6 – Trate ✅
 - Spoločný katalóg (seed) + vlastné trate tímu
 - Tímový setup pri trati: vytvoriť ručne / skopírovať z motokáry / upraviť / použiť na motokáru
 

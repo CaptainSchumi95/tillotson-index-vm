@@ -9,6 +9,8 @@ import {
   type ScheduleItem,
   type Session,
   type TeamEvent,
+  type Track,
+  type TrackSetup,
   type Invitation,
   type KartNote,
   type ServiceEntry,
@@ -424,7 +426,7 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
       const rows = must(
         await sb
           .from('events')
-          .select('id, kind, name, date_from, date_to, track_name, notes, event_karts(kart_id, round)')
+          .select('id, kind, name, date_from, date_to, track_name, track_id, notes, event_karts(kart_id, round)')
           .eq('team_id', teamId)
           .order('date_from', { ascending: false })
           .limit(200),
@@ -437,6 +439,7 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
           dateFrom: r.date_from,
           dateTo: r.date_to,
           trackName: r.track_name,
+          trackId: r.track_id ?? null,
           notes: r.notes,
           karts: (r.event_karts as Row[]).map((k) => ({ kartId: k.kart_id, round: k.round })),
         }),
@@ -455,6 +458,7 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
           p_track: input.trackName,
           p_notes: input.notes,
           p_karts: input.kartIds,
+          p_track_id: input.trackId,
         }),
       ) as string
     },
@@ -597,6 +601,62 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
 
     async setSessionFeedback(sessionId, text) {
       must(await sb.rpc('set_session_feedback', { p_session: sessionId, p_text: text }))
+    },
+
+    async listTracks(teamId) {
+      const rows = must(
+        await sb.from('tracks').select('id, team_id, name, location, length_m').or(`team_id.is.null,team_id.eq.${teamId}`).order('name'),
+      ) as Row[]
+      return rows.map(
+        (r): Track => ({ id: r.id, teamId: r.team_id, name: r.name, location: r.location, lengthM: r.length_m }),
+      )
+    },
+
+    async saveTrack(teamId, input) {
+      const row = { team_id: teamId, name: input.name, location: input.location, length_m: input.lengthM }
+      if (input.id) {
+        must(await sb.from('tracks').update(row).eq('id', input.id))
+        return input.id
+      }
+      return must(await sb.from('tracks').insert(row).select('id').single())!.id as string
+    },
+
+    async deleteTrack(trackId) {
+      must(await sb.from('tracks').delete().eq('id', trackId))
+    },
+
+    async listTrackSetups(teamId) {
+      const rows = must(
+        await sb
+          .from('track_setups')
+          .select('id, track_id, name, values, notes, updated_at, author:profiles(id, name, avatar_url)')
+          .eq('team_id', teamId)
+          .order('updated_at', { ascending: false }),
+      ) as Row[]
+      return rows.map(
+        (r): TrackSetup => ({
+          id: r.id,
+          trackId: r.track_id,
+          name: r.name,
+          values: r.values ?? {},
+          notes: r.notes,
+          updatedAt: r.updated_at,
+          updatedBy: toAuthor(r.author),
+        }),
+      )
+    },
+
+    async saveTrackSetup(teamId, input) {
+      const row = { team_id: teamId, track_id: input.trackId, name: input.name, values: input.values, notes: input.notes }
+      if (input.id) {
+        must(await sb.from('track_setups').update(row).eq('id', input.id))
+        return input.id
+      }
+      return must(await sb.from('track_setups').insert(row).select('id').single())!.id as string
+    },
+
+    async deleteTrackSetup(setupId) {
+      must(await sb.from('track_setups').delete().eq('id', setupId))
     },
   }
 }

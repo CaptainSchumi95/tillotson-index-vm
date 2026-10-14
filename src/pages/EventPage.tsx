@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
+import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { MapPin, Pencil, StickyNote } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ChecklistView } from '@/components/weekend/ChecklistView'
@@ -77,12 +77,22 @@ export function EventPage() {
 
       <div className="-mt-3 mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-ink-2">
         <span className="font-medium">{dateRange(event.dateFrom, event.dateTo, i18n.language)}</span>
-        {event.trackName && (
-          <span className="inline-flex items-center gap-1.5">
-            <MapPin className="size-4 text-ink-3" />
-            {event.trackName}
-          </span>
-        )}
+        {event.trackName &&
+          (event.trackId && can('track.view') ? (
+            <Link
+              to="/tracks/$trackId"
+              params={{ trackId: event.trackId }}
+              className="inline-flex items-center gap-1.5 font-medium text-accent-ink underline-offset-4 hover:underline"
+            >
+              <MapPin className="size-4" />
+              {t('tracks.forEvent', { track: event.trackName })}
+            </Link>
+          ) : (
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="size-4 text-ink-3" />
+              {event.trackName}
+            </span>
+          ))}
       </div>
 
       {event.notes && (

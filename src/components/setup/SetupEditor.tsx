@@ -32,6 +32,7 @@ export function SetupEditor({
   withNote = true,
   header,
   saveLabel,
+  saveDisabled,
 }: {
   fields: SetupField[]
   initial: SetupValues
@@ -41,6 +42,8 @@ export function SetupEditor({
   header?: ReactNode
   /** Vlastný text tlačidla (inak „Uložiť N zmien“). */
   saveLabel?: string
+  /** Napr. chýba povinný názov v hlavičke. */
+  saveDisabled?: boolean
 }) {
   const { t, i18n } = useTranslation()
   const label = useFieldLabel()
@@ -157,7 +160,7 @@ export function SetupEditor({
           <Button
             block
             size="lg"
-            disabled={changed.length === 0 && !saveLabel}
+            disabled={(changed.length === 0 && !saveLabel) || saveDisabled}
             loading={saving}
             onClick={() => onSave(values, note.trim())}
           >

@@ -1,17 +1,20 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { Info, Pencil, Trash2 } from 'lucide-react'
+import { BookmarkPlus, Info, Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useFieldLabel, useUnitPrefs } from '@/components/setup/SetupView'
 import { CONDITION_ICON, DeltaBadge, lapDelta } from '@/components/weekend/SessionsTab'
 import { Button } from '@/components/ui/Button'
 import { Badge, Card, Section } from '@/components/ui/Card'
 import { ConfirmSheet } from '@/components/ui/ConfirmSheet'
+import { Field } from '@/components/ui/Field'
+import { Sheet } from '@/components/ui/Sheet'
 import { KartPlate } from '@/components/ui/Identity'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { FullScreenLoader } from '@/components/ui/Spinner'
 import { useEvents } from '@/data/events'
-import { useCan, useCurrentTeam, useKarts, useSetupFields, useSetupRevisions } from '@/data/queries'
+import { safe, useCan, useCurrentTeam, useKarts, useSetupFields, useSetupRevisions } from '@/data/queries'
+import { useSaveTrackSetup } from '@/data/tracks'
 import { previousSession, useDeleteSession, useSessionFeedback, useSessions } from '@/data/sessions'
 import { changedKeys, formatField, unitLabel } from '@/data/setup-fields'
 import { formatLapTime } from '@/lib/laptime'
@@ -36,6 +39,9 @@ export function SessionPage() {
   const saveFeedback = useSessionFeedback(kartId ?? '')
   const [confirm, setConfirm] = useState(false)
   const [feedback, setFeedback] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [setupName, setSetupName] = useState('')
+  const saveToTrack = useSaveTrackSetup(team?.id ?? '')
 
   const session = sessions.data?.find((s) => s.id === sessionId)
   useEffect(() => {
@@ -209,6 +215,22 @@ export function SessionPage() {
           )}
         </Section>
 
+        {/* Úspešné nastavenie → knižnica trate udalosti */}
+        {event?.trackId && thisSetup && can('track.manage') && (
+          <Button
+            block
+            variant="secondary"
+            size="lg"
+            icon={<BookmarkPlus className="size-5" />}
+            onClick={() => {
+              setSetupName(`${session.label || t('weekend.session.title')} · ${formatLapTime(session.bestLapMs, i18n.language)}`)
+              setSaving(true)
+            }}
+          >
+            {t('tracks.saveFromSession')}
+          </Button>
+        )}
+
         {canEdit && (
           <Button
             block
@@ -221,6 +243,44 @@ export function SessionPage() {
           </Button>
         )}
       </div>
+
+      <Sheet
+        open={saving}
+        onOpenChange={setSaving}
+        title={t('tracks.saveFromSession')}
+        description={event?.trackName}
+        footer={
+          <Button
+            block
+            size="lg"
+            disabled={!setupName.trim()}
+            loading={saveToTrack.isPending}
+            onClick={async () => {
+              if (!event?.trackId || !thisSetup) return
+              const r = await safe(
+                saveToTrack.mutateAsync({
+                  trackId: event.trackId,
+                  name: setupName.trim().slice(0, 60),
+                  values: thisSetup.values,
+                  notes: [session.driverFeedback, session.behaviour].filter(Boolean).join('\n'),
+                }),
+              )
+              if (!r.ok) return
+              setSaving(false)
+              void navigate({ to: '/tracks/$trackId/setups/$setupId', params: { trackId: event.trackId, setupId: r.value } })
+            }}
+          >
+            {t('common.save')}
+          </Button>
+        }
+      >
+        <Field
+          label={t('tracks.setupName')}
+          value={setupName}
+          onChange={(e) => setSetupName(e.target.value)}
+          maxLength={60}
+        />
+      </Sheet>
 
       <ConfirmSheet
         open={confirm}

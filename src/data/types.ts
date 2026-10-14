@@ -180,6 +180,8 @@ export interface TeamEvent {
   dateFrom: string
   dateTo: string
   trackName: string
+  /** Trať z knižnice (ak bola vybraná). */
+  trackId: string | null
   notes: string
   /** Motokáry udalosti a ich aktuálne poradie jazdy (checklist Pred/Po jazde). */
   karts: { kartId: string; round: number }[]
@@ -192,6 +194,7 @@ export interface EventInput {
   dateFrom: string
   dateTo: string
   trackName: string
+  trackId: string | null
   notes: string
   kartIds: string[]
 }
@@ -256,3 +259,29 @@ export interface Session {
 }
 
 export type SessionInput = Omit<Session, 'author' | 'pending'>
+
+// ───────────── Trate ─────────────
+
+export interface Track {
+  id: string
+  /** null = spoločná trať pripravená aplikáciou */
+  teamId: string | null
+  name: string
+  location: string
+  lengthM: number | null
+}
+
+export type TrackInput = Pick<Track, 'name' | 'location' | 'lengthM'> & { id?: string }
+
+/** Setup k trati – odporúčanie / uložená skúsenosť tímu (nie stav motokáry). */
+export interface TrackSetup {
+  id: string
+  trackId: string
+  name: string
+  values: SetupValues
+  notes: string
+  updatedAt: string
+  updatedBy: Author
+}
+
+export type TrackSetupInput = Pick<TrackSetup, 'trackId' | 'name' | 'values' | 'notes'> & { id?: string }
