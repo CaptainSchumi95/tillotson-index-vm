@@ -379,7 +379,7 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
       const rows = must(
         await sb
           .from('service_log')
-          .select('id, kart_id, kind, performed_on, note, author:profiles(id, name, avatar_url)')
+          .select('id, kart_id, kind, performed_on, engine_hours, note, author:profiles(id, name, avatar_url)')
           .eq('kart_id', kartId)
           .order('performed_on', { ascending: false })
           .order('created_at', { ascending: false })
@@ -391,6 +391,7 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
           kartId: r.kart_id,
           kind: r.kind,
           performedOn: r.performed_on,
+          engineHours: r.engine_hours == null ? null : Number(r.engine_hours),
           note: r.note,
           author: toAuthor(r.author),
         }),
@@ -405,6 +406,7 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
             kart_id: input.kartId,
             kind: input.kind,
             performed_on: input.performedOn,
+            engine_hours: input.engineHours,
             note: input.note,
             author_id: await uid(),
           },

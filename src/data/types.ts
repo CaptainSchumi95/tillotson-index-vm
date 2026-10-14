@@ -156,12 +156,17 @@ export interface ServiceEntry {
   kind: ServiceKind
   /** Dátum vo formáte RRRR-MM-DD. */
   performedOn: string
+  /** Stav motohodín v čase servisu (pri oleji rozhodujúci údaj). */
+  engineHours: number | null
   note: string
   author: Author
   pending?: boolean
 }
 
-export type ServiceEntryInput = Pick<ServiceEntry, 'id' | 'kartId' | 'kind' | 'performedOn' | 'note'>
+export type ServiceEntryInput = Pick<ServiceEntry, 'id' | 'kartId' | 'kind' | 'performedOn' | 'engineHours' | 'note'>
+
+/** Interval výmeny oleja v motohodinách (Tillotson T4). */
+export const OIL_INTERVAL_HOURS = 3
 
 // ───────────── Udalosti, harmonogram, checklist ─────────────
 

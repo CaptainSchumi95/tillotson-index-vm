@@ -10,6 +10,7 @@ import { PressureGrid, useUnitPrefs } from '@/components/setup/SetupView'
 import { useCan, useCurrentKart, useCurrentTeam, useNotes, useService, useSetupRevisions } from '@/data/queries'
 import { currentEventFor, isActive, nextScheduleItem, useEvents, useSchedule } from '@/data/events'
 import { useChecklistProgress } from '@/components/weekend/ChecklistView'
+import { lastOilInfo, useHoursFormat } from '@/pages/ServicePage'
 import type { TeamEvent } from '@/data/types'
 import { cn } from '@/lib/cn'
 import { dateRange, nowTime, relativeDay, todayIso } from '@/lib/time'
@@ -26,7 +27,8 @@ export function HomePage() {
   const notes = useNotes(kart?.id)
   const service = useService(kart?.id)
   const latestNote = notes.data?.[0]
-  const lastOil = service.data?.find((e) => e.kind === 'oil')
+  const { last: lastOil, next: nextOil } = lastOilInfo(service.data)
+  const fmtHours = useHoursFormat()
   const events = useEvents(can('event.view') ? team?.id : undefined)
   const event = currentEventFor(events.data, kart?.id)
 
@@ -103,7 +105,11 @@ export function HomePage() {
               }
               title={t('home.serviceBook')}
               subtitle={
-                lastOil ? t('service.lastOil', { when: relativeDay(lastOil.performedOn, i18n.language) }) : t('service.lastOilNever')
+                lastOil
+                  ? lastOil.engineHours != null && nextOil != null
+                    ? t('service.lastOilHours', { hours: fmtHours(lastOil.engineHours), next: fmtHours(nextOil) })
+                    : t('service.lastOil', { when: relativeDay(lastOil.performedOn, i18n.language) })
+                  : t('service.lastOilNever')
               }
               to="/service"
             />

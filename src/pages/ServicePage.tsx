@@ -1,19 +1,33 @@
 import { useState } from 'react'
 import { CloudUpload, Droplet, Plus, Trash2, Wrench } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { Stepper } from '@/components/setup/Stepper'
 import { Button } from '@/components/ui/Button'
 import { Badge, Card, Section } from '@/components/ui/Card'
 import { ConfirmSheet } from '@/components/ui/ConfirmSheet'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { KartPlate } from '@/components/ui/Identity'
 import { RowIcon } from '@/components/ui/ListRow'
-import { Sheet } from '@/components/ui/Sheet'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { PickerField } from '@/components/ui/PickerField'
+import { Sheet } from '@/components/ui/Sheet'
 import { useCan, useCurrentKart, useDeleteService, useProfile, useSaveService, useService } from '@/data/queries'
-import { SERVICE_KINDS, type ServiceKind } from '@/data/types'
+import { OIL_INTERVAL_HOURS, SERVICE_KINDS, type ServiceEntry, type ServiceKind } from '@/data/types'
 import { cn } from '@/lib/cn'
 import { relativeDay, todayIso } from '@/lib/time'
+
+/** Formát motohodín: „12,5“. */
+export function useHoursFormat() {
+  const { i18n } = useTranslation()
+  return (h: number) => new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 2 }).format(h)
+}
+
+/** Posledná výmena oleja a kedy je ďalšia (podľa motohodín). */
+export function lastOilInfo(entries: ServiceEntry[] | undefined) {
+  const last = entries?.find((e) => e.kind === 'oil')
+  const next = last?.engineHours != null ? Math.round((last.engineHours + OIL_INTERVAL_HOURS) * 100) / 100 : null
+  return { last, next }
+}
 
 /** Servisná knižka motokáry (/service). */
 export function ServicePage() {
@@ -24,26 +38,43 @@ export function ServicePage() {
   const entries = useService(kart?.id)
   const save = useSaveService(kart?.id ?? '')
   const del = useDeleteService(kart?.id ?? '')
+  const fmt = useHoursFormat()
   const [open, setOpen] = useState(false)
   const [kind, setKind] = useState<ServiceKind>('oil')
+  const [hours, setHours] = useState<number | null>(null)
   const [date, setDate] = useState(todayIso())
+  const [pickDate, setPickDate] = useState(false)
   const [note, setNote] = useState('')
   const [toDelete, setToDelete] = useState<string | null>(null)
 
   if (!kart) return null
   const canWrite = can('service.edit')
-  const lastOil = entries.data?.find((e) => e.kind === 'oil')
+  const { last: lastOil, next: nextOil } = lastOilInfo(entries.data)
+  // Posledný známy stav motohodín – ako východisko pre nový zápis.
+  const knownHours = Math.max(0, ...(entries.data ?? []).map((e) => e.engineHours ?? 0)) || null
 
   function openAdd() {
     setKind('oil')
+    setHours(knownHours)
     setDate(todayIso())
+    setPickDate(false)
     setNote('')
     setOpen(true)
   }
 
+  // Pri oleji sú motohodiny povinné – sú jediný údaj, ktorý pri výmene naozaj treba.
+  const valid = !!date && (kind !== 'oil' || (hours != null && hours >= 0))
+
   function submit() {
-    if (!kart || !date) return
-    save.mutate({ id: crypto.randomUUID(), kartId: kart.id, kind, performedOn: date, note: note.trim() })
+    if (!kart || !valid) return
+    save.mutate({
+      id: crypto.randomUUID(),
+      kartId: kart.id,
+      kind,
+      performedOn: date,
+      engineHours: hours,
+      note: note.trim(),
+    })
     setOpen(false)
   }
 
@@ -58,18 +89,32 @@ export function ServicePage() {
       <PageHeader back title={t('service.title')} action={<KartPlate number={kart.number} />} />
 
       <div className="space-y-8">
-        {/* Najdôležitejšie: kedy bol naposledy olej */}
-        <Card className="flex items-center gap-4 p-5">
-          <span className="grid size-14 shrink-0 place-items-center rounded-[16px] bg-accent text-on-accent">
-            <Droplet className="size-7" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="eyebrow mb-1">{t('service.kinds.oil')}</div>
-            <div className="display text-[1.35rem]">
-              {lastOil ? relativeDay(lastOil.performedOn, i18n.language) : '—'}
+        {/* Najdôležitejšie: pri koľkých motohodinách bol olej a kedy je ďalší */}
+        <Card className="overflow-hidden">
+          <div className="flex items-center gap-4 p-5">
+            <span className="grid size-14 shrink-0 place-items-center rounded-[16px] bg-accent text-on-accent">
+              <Droplet className="size-7" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="eyebrow mb-1">{t('service.kinds.oil')}</div>
+              <div className="display text-[1.35rem]">
+                {lastOil
+                  ? lastOil.engineHours != null
+                    ? t('service.atHours', { hours: fmt(lastOil.engineHours) })
+                    : relativeDay(lastOil.performedOn, i18n.language)
+                  : '—'}
+              </div>
+              <div className="text-[0.9rem] text-ink-3">
+                {lastOil ? relativeDay(lastOil.performedOn, i18n.language) : t('service.lastOilNever')}
+              </div>
             </div>
-            {!lastOil && <div className="text-[0.9rem] text-ink-3">{t('service.lastOilNever')}</div>}
           </div>
+          {nextOil != null && (
+            <div className="flex items-center justify-between gap-3 border-t border-line bg-accent-soft px-5 py-3">
+              <span className="font-medium">{t('service.nextAt', { hours: fmt(nextOil) })}</span>
+              <span className="text-[0.85rem] text-ink-3">+{OIL_INTERVAL_HOURS} mh</span>
+            </div>
+          )}
         </Card>
 
         {canWrite && (
@@ -93,7 +138,12 @@ export function ServicePage() {
                       {e.kind === 'oil' ? <Droplet className="size-5" /> : <Wrench className="size-5" />}
                     </RowIcon>
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium">{t(`service.kinds.${e.kind}`)}</div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-medium">{t(`service.kinds.${e.kind}`)}</span>
+                        {e.engineHours != null && (
+                          <span className="display tnum text-[0.95rem]">{t('service.hoursShort', { hours: fmt(e.engineHours) })}</span>
+                        )}
+                      </div>
                       <div className="truncate text-[0.88rem] text-ink-3">
                         {[relativeDay(e.performedOn, i18n.language), e.author?.name, e.note].filter(Boolean).join(' · ')}
                       </div>
@@ -127,7 +177,7 @@ export function ServicePage() {
         onOpenChange={setOpen}
         title={t('service.add')}
         footer={
-          <Button block size="lg" disabled={!date} onClick={submit}>
+          <Button block size="lg" disabled={!valid} onClick={submit}>
             {t('common.save')}
           </Button>
         }
@@ -142,13 +192,42 @@ export function ServicePage() {
               ))}
             </div>
           </Section>
-          <PickerField
-            type="date"
-            label={t('service.date')}
-            value={date}
-            max={todayIso()}
-            onChange={(e) => e.target.value && setDate(e.target.value)}
-          />
+
+          <Section title={`${t('service.hours')}${kind === 'oil' ? '' : ` (${t('common.optional')})`}`}>
+            <Card className="flex flex-col items-center gap-2 p-4">
+              <Stepper
+                label={t('service.hours')}
+                value={hours}
+                onChange={setHours}
+                step={0.1}
+                decimals={[0, 2]}
+                size="lg"
+              />
+              <span className="text-[0.85rem] text-ink-3">
+                {kind === 'oil' ? t('service.interval', { hours: OIL_INTERVAL_HOURS }) : t('service.hoursHint')}
+              </span>
+            </Card>
+          </Section>
+
+          {pickDate ? (
+            <PickerField
+              type="date"
+              label={t('service.date')}
+              value={date}
+              max={todayIso()}
+              onChange={(e) => e.target.value && setDate(e.target.value)}
+            />
+          ) : (
+            <div className="flex items-center justify-between px-1">
+              <span className="text-ink-2">
+                {t('service.date')}: <span className="inline-block font-semibold text-ink first-letter:uppercase">{relativeDay(date, i18n.language)}</span>
+              </span>
+              <Button variant="ghost" size="sm" onClick={() => setPickDate(true)}>
+                {t('service.otherDate')}
+              </Button>
+            </div>
+          )}
+
           <Section title={t('service.note')}>
             <input
               type="text"

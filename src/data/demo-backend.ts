@@ -197,8 +197,8 @@ function demoNotesService(): Pick<DemoDb, 'notes' | 'service'> {
       { id: 'note-1', kartId: 'kart-95', text: 'Volant je trochu ťažký v pomalých zákrutách.', authorId: 'p-adam', recordedAt: iso(2 * day) },
     ],
     service: [
-      { id: 'srv-2', kartId: 'kart-95', kind: 'oil', performedOn: date(5 * day), note: '', authorId: 'p-peter', createdAt: iso(5 * day) },
-      { id: 'srv-1', kartId: 'kart-95', kind: 'spark_plug', performedOn: date(12 * day), note: 'NGK, nová', authorId: ME, createdAt: iso(12 * day) },
+      { id: 'srv-2', kartId: 'kart-95', kind: 'oil', performedOn: date(5 * day), engineHours: 12.5, note: '', authorId: 'p-peter', createdAt: iso(5 * day) },
+      { id: 'srv-1', kartId: 'kart-95', kind: 'spark_plug', performedOn: date(12 * day), engineHours: 10, note: 'NGK, nová', authorId: ME, createdAt: iso(12 * day) },
     ],
   }
 }
@@ -607,7 +607,7 @@ export function createDemoBackend(): Backend {
       return db.service
         .filter((s) => s.kartId === kartId)
         .sort((a, b) => b.performedOn.localeCompare(a.performedOn) || b.createdAt.localeCompare(a.createdAt))
-        .map(({ authorId, createdAt: _c, ...s }) => ({ ...s, author: authorOf(db, authorId) }))
+        .map(({ authorId, createdAt: _c, ...s }) => ({ ...s, engineHours: s.engineHours ?? null, author: authorOf(db, authorId) }))
     },
 
     async saveService(input) {
