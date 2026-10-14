@@ -7,6 +7,9 @@ import pkg from './package.json' with { type: 'json' }
 
 export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
+  // NEXT_PUBLIC_* vytvára integrácia Supabase vo Verceli. Iba verejné kľúče –
+  // nikdy sem nepridávať prefix SUPABASE_ (obsahuje aj tajný service_role kľúč).
+  envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
