@@ -14,7 +14,10 @@ import { LoginPage } from '@/pages/LoginPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
 import { RoleEditorPage } from '@/pages/RoleEditorPage'
 import { RolesPage } from '@/pages/RolesPage'
-import { SetupPage, TracksPage, WeekendPage } from '@/pages/PlaceholderPages'
+import { TracksPage, WeekendPage } from '@/pages/PlaceholderPages'
+import { SetupEditPage, VariantEditPage } from '@/pages/SetupEditPage'
+import { SetupFieldsPage } from '@/pages/SetupFieldsPage'
+import { SetupPage } from '@/pages/SetupPage'
 import { SelectPage } from '@/pages/SelectPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { TeamAppearancePage } from '@/pages/TeamAppearancePage'
@@ -100,6 +103,9 @@ const routeTree = rootRoute.addChildren([
     page('/home', HomePage),
     page('/weekend', WeekendPage),
     page('/setup', SetupPage),
+    page('/setup/edit', SetupEditPage),
+    page('/setup/fields', SetupFieldsPage),
+    page('/setup/variants/$variantId', VariantEditPage),
     page('/tracks', TracksPage),
     page('/team', TeamPage),
     page('/team/appearance', TeamAppearancePage),

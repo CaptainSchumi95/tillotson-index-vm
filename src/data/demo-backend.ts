@@ -4,7 +4,16 @@
 import { DEFAULT_UNITS } from '@/lib/units'
 import { blobToDataUrl } from '@/lib/image'
 import type { AuthUser, Backend } from './backend'
-import { PERMISSIONS, type Kart, type Permission, type Profile, type RolePreset, type Team } from './types'
+import {
+  PERMISSIONS,
+  type CustomSetupField,
+  type Kart,
+  type Permission,
+  type Profile,
+  type RolePreset,
+  type SetupValues,
+  type Team,
+} from './types'
 
 const KEY = 'ti-demo-v2'
 
@@ -32,7 +41,27 @@ interface DemoInvitation {
   kartIds: string[]
 }
 
+interface DemoRevision {
+  id: string
+  kartId: string
+  values: SetupValues
+  note: string
+  authorId: string
+  recordedAt: string
+}
+
+interface DemoVariant {
+  id: string
+  kartId: string
+  name: string
+  values: SetupValues
+  updatedAt: string
+}
+
 interface DemoDb {
+  revisions: DemoRevision[]
+  variants: DemoVariant[]
+  fields: (CustomSetupField & { teamId: string })[]
   user: AuthUser | null
   profile: Profile
   teams: Team[]
@@ -63,6 +92,30 @@ function defaultRoles(teamId: string): DemoRole[] {
   ]
 }
 
+/** Vzorový setup motokáry 95 s dvoma zmenami v histórii. */
+function demoSetup(): Pick<DemoDb, 'revisions' | 'variants' | 'fields'> {
+  const base: SetupValues = {
+    tire_fl: 0.85, tire_fr: 0.85, tire_rl: 0.9, tire_rr: 0.9,
+    sprocket_front: 10, sprocket_rear: 82,
+    carb_low: 1.25, carb_high: 1.5,
+    camber_left: -1, camber_right: -1, caster: 12, toe: 1,
+    track_front: 1080, track_rear: 1390, height_front: 30, height_rear: 35,
+  }
+  const day = 24 * 60 * 60 * 1000
+  const at = (offset: number) => new Date(Date.now() - offset).toISOString()
+  return {
+    revisions: [
+      { id: 'rev-3', kartId: 'kart-95', values: { ...base, tire_fl: 0.82, tire_fr: 0.82, sprocket_rear: 83 }, note: 'Viac záberu na výjazde z vlásenky.', authorId: 'p-peter', recordedAt: at(2 * 60 * 60 * 1000) },
+      { id: 'rev-2', kartId: 'kart-95', values: { ...base, tire_fl: 0.82, tire_fr: 0.82 }, note: '', authorId: ME, recordedAt: at(day) },
+      { id: 'rev-1', kartId: 'kart-95', values: base, note: 'Základ na sezónu.', authorId: ME, recordedAt: at(6 * day) },
+    ],
+    variants: [
+      { id: 'var-wet', kartId: 'kart-95', name: 'Mokrá trať', values: { ...base, tire_fl: 1.1, tire_fr: 1.1, tire_rl: 1.15, tire_rr: 1.15, track_rear: 1340 }, updatedAt: at(3 * day) },
+    ],
+    fields: [],
+  }
+}
+
 function seed(): DemoDb {
   const teamId = 'team-demo'
   const profile: Profile = {
@@ -90,6 +143,7 @@ function seed(): DemoDb {
       },
     ],
     invitations: [],
+    ...demoSetup(),
     karts: [
       { id: 'kart-95', teamId, number: '95', driverName: 'Adam' },
       { id: 'kart-51', teamId, number: '51', driverName: 'Ema' },
@@ -101,7 +155,7 @@ function seed(): DemoDb {
 function load(): DemoDb {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return JSON.parse(raw) as DemoDb
+    if (raw) return { ...demoSetup(), ...(JSON.parse(raw) as DemoDb) }
   } catch {
     /* poškodené dáta – začneme odznova */
   }
@@ -327,6 +381,86 @@ export function createDemoBackend(): Backend {
     async archiveKart(kartId) {
       await delay()
       mutate((db) => (db.karts.find((k) => k.id === kartId)!.archived = true))
+    },
+
+    async listSetupRevisions(kartId) {
+      await delay()
+      const db = load()
+      return db.revisions
+        .filter((r) => r.kartId === kartId)
+        .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
+        .map((r) => {
+          const p = db.members.find((m) => m.profile.id === r.authorId)?.profile
+          return {
+            id: r.id,
+            kartId: r.kartId,
+            values: r.values,
+            note: r.note,
+            recordedAt: r.recordedAt,
+            author: p ? { id: p.id, name: p.name, avatarUrl: p.avatarUrl } : null,
+          }
+        })
+    },
+
+    async saveSetupRevision(input) {
+      await delay()
+      mutate((db) => {
+        if (db.revisions.some((r) => r.id === input.id)) return
+        db.revisions.push({ ...input, authorId: ME })
+      })
+    },
+
+    async listSetupVariants(kartId) {
+      await delay()
+      return load()
+        .variants.filter((v) => v.kartId === kartId)
+        .sort((a, b) => a.name.localeCompare(b.name))
+    },
+
+    async saveSetupVariant(input) {
+      await delay()
+      return mutate((db) => {
+        const updatedAt = new Date().toISOString()
+        const existing = input.id ? db.variants.find((v) => v.id === input.id) : undefined
+        if (existing) {
+          Object.assign(existing, { name: input.name, values: input.values, updatedAt })
+          return existing.id
+        }
+        const id = uid()
+        db.variants.push({ id, kartId: input.kartId, name: input.name, values: input.values, updatedAt })
+        return id
+      })
+    },
+
+    async deleteSetupVariant(variantId) {
+      await delay()
+      mutate((db) => (db.variants = db.variants.filter((v) => v.id !== variantId)))
+    },
+
+    async listSetupFields(teamId) {
+      await delay()
+      return load()
+        .fields.filter((f) => f.teamId === teamId)
+        .map(({ teamId: _t, ...f }) => f)
+    },
+
+    async saveSetupField(teamId, input) {
+      await delay()
+      return mutate((db) => {
+        const existing = input.id ? db.fields.find((f) => f.id === input.id) : undefined
+        if (existing) {
+          Object.assign(existing, input)
+          return existing.id
+        }
+        const id = uid()
+        db.fields.push({ ...input, id, teamId })
+        return id
+      })
+    },
+
+    async deleteSetupField(fieldId) {
+      await delay()
+      mutate((db) => (db.fields = db.fields.filter((f) => f.id !== fieldId)))
     },
   }
 }

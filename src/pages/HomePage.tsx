@@ -6,9 +6,9 @@ import { Badge, Card, Section } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { KartPlate, TeamBadge } from '@/components/ui/Identity'
 import { ListGroup, ListRow, RowIcon } from '@/components/ui/ListRow'
-import { useCan, useCurrentKart, useCurrentTeam, useProfile } from '@/data/queries'
-import { cn } from '@/lib/cn'
-import { DEFAULT_UNITS, formatValue } from '@/lib/units'
+import { PressureGrid, useUnitPrefs } from '@/components/setup/SetupView'
+import { useCan, useCurrentKart, useCurrentTeam, useSetupRevisions } from '@/data/queries'
+import { unitLabel } from '@/data/setup-fields'
 import { useUi } from '@/state/ui'
 
 export function HomePage() {
@@ -77,7 +77,7 @@ export function HomePage() {
           </Link>
         </Section>
 
-        {can('setup.view') && <PressuresCard />}
+        {can('setup.view') && <PressuresCard kartId={kart.id} />}
 
         <Section title={t('home.checklist')} className="flex flex-col">
           <Card className="flex flex-1 items-center gap-4 p-4 sm:p-5 lg:flex-col lg:justify-center lg:text-center">
@@ -118,46 +118,19 @@ export function HomePage() {
   )
 }
 
-const TIRES = ['fl', 'fr', 'rl', 'rr'] as const
-
-/** Tlaky v rozložení ako na motokáre: predok hore, zadok dole. */
-function PressuresCard() {
-  const { t, i18n } = useTranslation()
-  const profile = useProfile()
-  const prefs = profile.data?.unitPrefs ?? DEFAULT_UNITS
-  // Hodnoty pribudnú vo fáze Setup.
-  const values: Record<(typeof TIRES)[number], number | null> = { fl: null, fr: null, rl: null, rr: null }
-  const unit = formatValue('pressure', null, prefs, i18n.language).unit
+/** Tlaky z aktuálneho setupu – ťuknutím do sekcie Setup. */
+function PressuresCard({ kartId }: { kartId: string }) {
+  const { t } = useTranslation()
+  const prefs = useUnitPrefs()
+  const revisions = useSetupRevisions(kartId)
+  const current = revisions.data?.[0]
+  const unit = unitLabel({ unit: 'pressure' }, prefs)
 
   return (
     <Section title={t('home.pressures')} action={<span className="eyebrow">{unit}</span>} className="flex flex-col">
       <Link to="/setup" className="block flex-1 rounded-[22px]">
         <Card className="h-full p-3 transition-colors hover:border-line-strong">
-          <div className="grid grid-cols-[1fr_64px_1fr] grid-rows-2 gap-y-3">
-            {TIRES.map((tire, i) => {
-              const f = formatValue('pressure', values[tire], prefs, i18n.language)
-              return (
-                <div
-                  key={tire}
-                  className={cn(
-                    'rounded-[16px] bg-surface-2 px-4 py-3',
-                    i % 2 === 0 ? 'col-start-1' : 'col-start-3 text-right',
-                    i < 2 ? 'row-start-1' : 'row-start-2',
-                  )}
-                >
-                  <div className="text-[0.78rem] font-medium text-ink-3">{t(`home.tires.${tire}`)}</div>
-                  <div className={cn('display tnum mt-1 text-[1.75rem]', values[tire] == null && 'text-ink-3/60')}>{f.value}</div>
-                </div>
-              )
-            })}
-            {/* štylizovaný podvozok */}
-            <div aria-hidden className="relative col-start-2 row-span-2 row-start-1">
-              <div className="absolute inset-x-0 top-1/4 h-[2px] -translate-y-1/2 bg-line-strong" />
-              <div className="absolute inset-x-0 top-3/4 h-[2px] -translate-y-1/2 bg-line-strong" />
-              <div className="absolute inset-y-[12%] left-1/2 w-6 -translate-x-1/2 rounded-[10px] border-2 border-line-strong bg-surface" />
-              <div className="absolute top-[40%] left-1/2 size-3 -translate-x-1/2 rounded-full border-2 border-line-strong bg-surface" />
-            </div>
-          </div>
+          <PressureGrid values={current?.values ?? {}} />
         </Card>
       </Link>
     </Section>

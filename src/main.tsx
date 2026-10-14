@@ -6,6 +6,9 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import { RouterProvider } from '@tanstack/react-router'
 import { del, get, set } from 'idb-keyval'
 import { AuthProvider } from '@/auth/AuthProvider'
+import { backend } from '@/data'
+import { qk, SAVE_SETUP_KEY } from '@/data/queries'
+import type { SetupRevisionInput } from '@/data/types'
 import { QUERY_CACHE_KEY, QUERY_CACHE_SCHEMA } from '@/lib/cache'
 import { router } from '@/router'
 import '@/i18n'
@@ -24,6 +27,17 @@ const queryClient = new QueryClient({
   },
 })
 
+// Uloženie setupu na trati: bez signálu počká vo fronte (aj po zatvorení aplikácie)
+// a odošle sa, keď sa zariadenie pripojí. Uloženie je idempotentné (id revízie).
+queryClient.setMutationDefaults(SAVE_SETUP_KEY, {
+  mutationFn: (input: SetupRevisionInput) => backend.saveSetupRevision(input),
+  networkMode: 'online',
+  retry: 6,
+  retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30_000),
+  onSettled: (_data, _error, input: SetupRevisionInput) =>
+    queryClient.invalidateQueries({ queryKey: qk.setup(input.kartId) }),
+})
+
 const persister = createAsyncStoragePersister({
   storage: { getItem: get, setItem: set, removeItem: del },
   key: QUERY_CACHE_KEY,
@@ -34,6 +48,7 @@ createRoot(document.getElementById('root')!).render(
     <PersistQueryClientProvider
       client={queryClient}
       persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24 * 7, buster: `${__APP_VERSION__}/${QUERY_CACHE_SCHEMA}` }}
+      onSuccess={() => void queryClient.resumePausedMutations()}
     >
       <AuthProvider>
         <RouterProvider router={router} />

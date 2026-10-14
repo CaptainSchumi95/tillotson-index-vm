@@ -1,4 +1,5 @@
 import type { UnitPrefs } from '@/lib/units'
+import type { FieldUnit, SetupGroup, SetupValues } from './setup-fields'
 
 export const PERMISSIONS = [
   'team.manage',
@@ -90,4 +91,43 @@ export interface RoleInput {
   id?: string
   name: string
   permissions: Permission[]
+}
+
+// ───────────── Setup ─────────────
+
+export type { SetupValue, SetupValues } from './setup-fields'
+
+export interface SetupRevision {
+  id: string
+  kartId: string
+  values: SetupValues
+  note: string
+  author: Pick<Profile, 'id' | 'name' | 'avatarUrl'> | null
+  /** Kedy zmenu urobil mechanik (ISO). */
+  recordedAt: string
+  /** Ešte neodoslané na server (uložené offline). */
+  pending?: boolean
+}
+
+export interface SetupRevisionInput {
+  id: string
+  kartId: string
+  values: SetupValues
+  note: string
+  recordedAt: string
+}
+
+export interface SetupVariant {
+  id: string
+  kartId: string
+  name: string
+  values: SetupValues
+  updatedAt: string
+}
+
+export interface CustomSetupField {
+  id: string
+  group: SetupGroup
+  label: string
+  unit: FieldUnit
 }

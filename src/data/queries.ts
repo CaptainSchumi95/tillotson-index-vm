@@ -1,7 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useWorkspace } from '@/state/workspace'
 import { backend } from '.'
-import { KNOWN_ERRORS, type KartInput, type KnownError, type Permission, type ProfilePatch, type RoleInput, type TeamPatch } from './types'
+import { GROUP_ORDER, STANDARD_FIELDS, type SetupField } from './setup-fields'
+import {
+  KNOWN_ERRORS,
+  type CustomSetupField,
+  type KartInput,
+  type KnownError,
+  type Permission,
+  type ProfilePatch,
+  type RoleInput,
+  type SetupRevision,
+  type SetupRevisionInput,
+  type SetupValues,
+  type TeamPatch,
+} from './types'
 
 export const qk = {
   profile: ['profile'] as const,
@@ -10,6 +23,9 @@ export const qk = {
   karts: (teamId: string) => ['karts', teamId] as const,
   roles: (teamId: string) => ['roles', teamId] as const,
   invitations: (teamId: string) => ['invitations', teamId] as const,
+  setup: (kartId: string) => ['setup', 'revisions', kartId] as const,
+  variants: (kartId: string) => ['setup', 'variants', kartId] as const,
+  setupFields: (teamId: string) => ['setup', 'fields', teamId] as const,
 }
 
 /** Známy kód chyby z databázy (napr. 'last_manager'), inak null. */
@@ -195,4 +211,104 @@ export async function safe<T>(promise: Promise<T>): Promise<{ ok: true; value: T
   } catch {
     return { ok: false }
   }
+}
+
+// ───────────── Setup ─────────────
+
+export const SAVE_SETUP_KEY = ['setup', 'save'] as const
+
+export function useSetupRevisions(kartId: string | undefined) {
+  const can = useCan()
+  return useQuery({
+    queryKey: qk.setup(kartId ?? ''),
+    queryFn: () => backend.listSetupRevisions(kartId!),
+    enabled: !!kartId && can('setup.view'),
+  })
+}
+
+/**
+ * Uloženie setupu – funguje aj offline. mutationFn je v setMutationDefaults (main.tsx),
+ * aby sa neodoslaná zmena zachovala aj po zatvorení aplikácie a odoslala sa neskôr.
+ * Nečakaj na výsledok (mutate, nie mutateAsync) – bez signálu by čakanie trvalo.
+ */
+export function useSaveSetup(kartId: string) {
+  const qc = useQueryClient()
+  const profile = useProfile()
+  return useMutation({
+    mutationKey: SAVE_SETUP_KEY,
+    onMutate: async (input: SetupRevisionInput) => {
+      await qc.cancelQueries({ queryKey: qk.setup(kartId) })
+      const p = profile.data
+      const optimistic: SetupRevision = {
+        ...input,
+        author: p ? { id: p.id, name: p.name, avatarUrl: p.avatarUrl } : null,
+        pending: true,
+      }
+      qc.setQueryData<SetupRevision[]>(qk.setup(kartId), (cur) => [optimistic, ...(cur ?? [])])
+    },
+  })
+}
+
+export function useSetupVariants(kartId: string | undefined) {
+  const can = useCan()
+  return useQuery({
+    queryKey: qk.variants(kartId ?? ''),
+    queryFn: () => backend.listSetupVariants(kartId!),
+    enabled: !!kartId && can('setup.view'),
+  })
+}
+
+export function useSaveVariant(kartId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { id?: string; name: string; values: SetupValues }) =>
+      backend.saveSetupVariant({ ...input, kartId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.variants(kartId) }),
+  })
+}
+
+export function useDeleteVariant(kartId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => backend.deleteSetupVariant(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.variants(kartId) }),
+  })
+}
+
+export function useCustomSetupFields(teamId: string | undefined) {
+  return useQuery({
+    queryKey: qk.setupFields(teamId ?? ''),
+    queryFn: () => backend.listSetupFields(teamId!),
+    enabled: !!teamId,
+  })
+}
+
+/** Všetky položky setupu tímu: štandardné + vlastné, zoradené podľa skupín. */
+export function useSetupFields(teamId: string | undefined): SetupField[] {
+  const custom = useCustomSetupFields(teamId)
+  const extra: SetupField[] = (custom.data ?? []).map((f) => ({
+    key: f.id,
+    group: f.group,
+    unit: f.unit,
+    step: f.unit === 'pressure' ? 0.01 : f.unit === 'turns' ? 0.125 : 1,
+    label: f.label,
+    custom: true,
+  }))
+  return GROUP_ORDER.flatMap((g) => [...STANDARD_FIELDS, ...extra].filter((f) => f.group === g))
+}
+
+export function useSaveSetupField(teamId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: Omit<CustomSetupField, 'id'> & { id?: string }) => backend.saveSetupField(teamId, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.setupFields(teamId) }),
+  })
+}
+
+export function useDeleteSetupField(teamId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => backend.deleteSetupField(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.setupFields(teamId) }),
+  })
 }

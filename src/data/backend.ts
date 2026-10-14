@@ -1,4 +1,5 @@
 import type {
+  CustomSetupField,
   InviteResult,
   Invitation,
   Kart,
@@ -8,6 +9,10 @@ import type {
   Profile,
   ProfilePatch,
   RoleInput,
+  SetupRevision,
+  SetupRevisionInput,
+  SetupVariant,
+  SetupValues,
   TeamPatch,
   TeamRole,
 } from './types'
@@ -52,4 +57,17 @@ export interface Backend {
   createKart(teamId: string, input: KartInput): Promise<string>
   updateKart(kartId: string, input: KartInput): Promise<void>
   archiveKart(kartId: string): Promise<void>
+
+  /** Revízie setupu, najnovšia prvá. Prvá = aktuálny setup motokáry. */
+  listSetupRevisions(kartId: string): Promise<SetupRevision[]>
+  /** Idempotentné – rovnaké id sa uloží iba raz (bezpečné opakovanie po výpadku siete). */
+  saveSetupRevision(input: SetupRevisionInput): Promise<void>
+
+  listSetupVariants(kartId: string): Promise<SetupVariant[]>
+  saveSetupVariant(input: { id?: string; kartId: string; name: string; values: SetupValues }): Promise<string>
+  deleteSetupVariant(variantId: string): Promise<void>
+
+  listSetupFields(teamId: string): Promise<CustomSetupField[]>
+  saveSetupField(teamId: string, input: Omit<CustomSetupField, 'id'> & { id?: string }): Promise<string>
+  deleteSetupField(fieldId: string): Promise<void>
 }

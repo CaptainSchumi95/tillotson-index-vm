@@ -1,7 +1,19 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { normalizeUnitPrefs } from '@/lib/units'
 import type { AuthUser, Backend } from './backend'
-import { KNOWN_ERRORS, type Invitation, type Kart, type Member, type MyTeam, type Permission, type Role, type TeamRole } from './types'
+import {
+  KNOWN_ERRORS,
+  type CustomSetupField,
+  type Invitation,
+  type Kart,
+  type Member,
+  type MyTeam,
+  type Permission,
+  type Role,
+  type SetupRevision,
+  type SetupVariant,
+  type TeamRole,
+} from './types'
 
 type Row = Record<string, any>
 
@@ -239,6 +251,85 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
 
     async archiveKart(kartId) {
       must(await sb.from('karts').update({ archived: true }).eq('id', kartId))
+    },
+
+    async listSetupRevisions(kartId) {
+      const rows = must(
+        await sb
+          .from('setup_revisions')
+          .select('id, kart_id, values, note, recorded_at, author:profiles(id, name, avatar_url)')
+          .eq('kart_id', kartId)
+          .order('recorded_at', { ascending: false })
+          .limit(100),
+      ) as Row[]
+      return rows.map(
+        (r): SetupRevision => ({
+          id: r.id,
+          kartId: r.kart_id,
+          values: r.values ?? {},
+          note: r.note,
+          recordedAt: r.recorded_at,
+          author: r.author ? { id: r.author.id, name: r.author.name, avatarUrl: r.author.avatar_url } : null,
+        }),
+      )
+    },
+
+    async saveSetupRevision(input) {
+      must(
+        await sb.from('setup_revisions').upsert(
+          {
+            id: input.id,
+            kart_id: input.kartId,
+            values: input.values,
+            note: input.note,
+            recorded_at: input.recordedAt,
+            author_id: await uid(),
+          },
+          { onConflict: 'id', ignoreDuplicates: true },
+        ),
+      )
+    },
+
+    async listSetupVariants(kartId) {
+      const rows = must(
+        await sb.from('setup_variants').select('id, kart_id, name, values, updated_at').eq('kart_id', kartId).order('name'),
+      ) as Row[]
+      return rows.map(
+        (r): SetupVariant => ({ id: r.id, kartId: r.kart_id, name: r.name, values: r.values ?? {}, updatedAt: r.updated_at }),
+      )
+    },
+
+    async saveSetupVariant(input) {
+      const row = { kart_id: input.kartId, name: input.name, values: input.values }
+      if (input.id) {
+        must(await sb.from('setup_variants').update(row).eq('id', input.id))
+        return input.id
+      }
+      return must(await sb.from('setup_variants').insert(row).select('id').single())!.id as string
+    },
+
+    async deleteSetupVariant(variantId) {
+      must(await sb.from('setup_variants').delete().eq('id', variantId))
+    },
+
+    async listSetupFields(teamId) {
+      const rows = must(
+        await sb.from('setup_fields').select('id, group_key, label, unit').eq('team_id', teamId).order('sort_order').order('created_at'),
+      ) as Row[]
+      return rows.map((r): CustomSetupField => ({ id: r.id, group: r.group_key, label: r.label, unit: r.unit }))
+    },
+
+    async saveSetupField(teamId, input) {
+      const row = { team_id: teamId, group_key: input.group, label: input.label, unit: input.unit }
+      if (input.id) {
+        must(await sb.from('setup_fields').update(row).eq('id', input.id))
+        return input.id
+      }
+      return must(await sb.from('setup_fields').insert(row).select('id').single())!.id as string
+    },
+
+    async deleteSetupField(fieldId) {
+      must(await sb.from('setup_fields').delete().eq('id', fieldId))
     },
   }
 }

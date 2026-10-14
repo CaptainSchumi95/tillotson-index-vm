@@ -83,7 +83,7 @@ Predvolené roly: **manažér, šéfmechanik, mechanik, jazdec** (jazdec bez `se
 - Členovia (pozvanie cez e-mail), roly, editor vlastných rolí a oprávnení
 - Motokáry, kategórie, pridelenia, vzhľad tímu
 
-### Fáza 3 – Setup
+### Fáza 3 – Setup ✅
 - Tlaky 4 pneumatík navrchu, prevod, karburátor, geometria, rozmery, vlastné položky
 - História revízií (kto/kedy/čo), varianty
 
