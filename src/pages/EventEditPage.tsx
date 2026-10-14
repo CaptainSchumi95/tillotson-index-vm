@@ -8,14 +8,12 @@ import { Section } from '@/components/ui/Card'
 import { ConfirmSheet } from '@/components/ui/ConfirmSheet'
 import { Field } from '@/components/ui/Field'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { PickerField } from '@/components/ui/PickerField'
 import { useDeleteEvent, useEvents, useSaveEvent } from '@/data/events'
 import { safe, useCan, useCurrentKart, useCurrentTeam, useKarts } from '@/data/queries'
 import type { EventKind } from '@/data/types'
 import { cn } from '@/lib/cn'
 import { todayIso } from '@/lib/time'
-
-const inputCls =
-  'h-[52px] w-full rounded-[14px] border border-line-strong bg-surface px-4 outline-none focus:border-accent focus:shadow-[0_0_0_4px_var(--accent-soft)]'
 
 /** Nová udalosť (/weekend/new) alebo úprava (/weekend/$eventId/edit). */
 export function EventEditPage() {
@@ -115,22 +113,23 @@ export function EventEditPage() {
         />
 
         <div className="grid grid-cols-2 gap-3">
-          <label className="block space-y-1.5">
-            <span className="block px-1 text-[0.88rem] font-semibold text-ink-2">{t('weekend.dateFrom')}</span>
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => {
-                setFrom(e.target.value)
-                if (e.target.value > to) setTo(e.target.value)
-              }}
-              className={inputCls}
-            />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="block px-1 text-[0.88rem] font-semibold text-ink-2">{t('weekend.dateTo')}</span>
-            <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} className={inputCls} />
-          </label>
+          <PickerField
+            type="date"
+            label={t('weekend.dateFrom')}
+            value={from}
+            onChange={(e) => {
+              if (!e.target.value) return
+              setFrom(e.target.value)
+              if (e.target.value > to) setTo(e.target.value)
+            }}
+          />
+          <PickerField
+            type="date"
+            label={t('weekend.dateTo')}
+            value={to}
+            min={from}
+            onChange={(e) => e.target.value && setTo(e.target.value)}
+          />
         </div>
 
         <Field

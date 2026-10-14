@@ -44,7 +44,9 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
               <X className="size-5" />
             </button>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-3 pb-4">{children}</div>
+          <div data-vaul-no-drag="" className="min-h-0 flex-1 overflow-y-auto px-6 pt-3 pb-4">
+            {children}
+          </div>
           {footer && <div className="safe-bottom border-t border-line px-6 pt-4 pb-4 lg:pb-6">{footer}</div>}
         </Drawer.Content>
       </Drawer.Portal>

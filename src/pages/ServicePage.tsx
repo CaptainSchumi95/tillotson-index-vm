@@ -9,6 +9,7 @@ import { KartPlate } from '@/components/ui/Identity'
 import { RowIcon } from '@/components/ui/ListRow'
 import { Sheet } from '@/components/ui/Sheet'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { PickerField } from '@/components/ui/PickerField'
 import { useCan, useCurrentKart, useDeleteService, useProfile, useSaveService, useService } from '@/data/queries'
 import { SERVICE_KINDS, type ServiceKind } from '@/data/types'
 import { cn } from '@/lib/cn'
@@ -141,15 +142,13 @@ export function ServicePage() {
               ))}
             </div>
           </Section>
-          <Section title={t('service.date')}>
-            <input
-              type="date"
-              value={date}
-              max={todayIso()}
-              onChange={(e) => setDate(e.target.value)}
-              className="h-[52px] w-full rounded-[14px] border border-line-strong bg-surface px-4 outline-none focus:border-accent"
-            />
-          </Section>
+          <PickerField
+            type="date"
+            label={t('service.date')}
+            value={date}
+            max={todayIso()}
+            onChange={(e) => e.target.value && setDate(e.target.value)}
+          />
           <Section title={t('service.note')}>
             <input
               type="text"

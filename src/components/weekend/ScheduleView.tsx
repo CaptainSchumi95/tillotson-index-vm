@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { Card, Section } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
+import { PickerField } from '@/components/ui/PickerField'
 import { Sheet } from '@/components/ui/Sheet'
 import { nextScheduleItem, useDeleteScheduleItem, useSaveScheduleItem, useSchedule } from '@/data/events'
 import { safe } from '@/data/queries'
@@ -142,7 +143,7 @@ export function ScheduleView({ event, canManage }: { event: TeamEvent; canManage
                     type="button"
                     onClick={() => setDay(d)}
                     className={cn(
-                      'h-11 rounded-[12px] border px-4 font-medium capitalize transition-colors',
+                      'h-11 rounded-[12px] border px-4 font-medium transition-colors first-letter:uppercase',
                       day === d ? 'border-accent bg-accent-soft text-accent-ink' : 'border-line-strong bg-surface text-ink-2',
                     )}
                   >
@@ -152,15 +153,7 @@ export function ScheduleView({ event, canManage }: { event: TeamEvent; canManage
               </div>
             </Section>
           )}
-          <label className="block space-y-1.5">
-            <span className="block px-1 text-[0.88rem] font-semibold text-ink-2">{t('weekend.schedule.time')}</span>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="h-[52px] w-full rounded-[14px] border border-line-strong bg-surface px-4 outline-none focus:border-accent"
-            />
-          </label>
+          <PickerField type="time" label={t('weekend.schedule.time')} value={time} onChange={(e) => setTime(e.target.value)} />
           <Field
             label={t('weekend.schedule.title')}
             placeholder={t('weekend.schedule.titlePlaceholder')}
