@@ -7,6 +7,7 @@ import {
   type ChecklistItem,
   type CustomSetupField,
   type ScheduleItem,
+  type Session,
   type TeamEvent,
   type Invitation,
   type KartNote,
@@ -531,6 +532,71 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
 
     async setRound(eventId, kartId, round) {
       must(await sb.from('event_karts').update({ round }).eq('event_id', eventId).eq('kart_id', kartId))
+    },
+
+    async listSessions(kartId) {
+      const rows = must(
+        await sb
+          .from('sessions')
+          .select(
+            'id, event_id, kart_id, label, best_lap_ms, laps, track_condition, conditions_note, balance, behaviour, driver_feedback, next_plan, setup_revision_id, recorded_at, author:profiles(id, name, avatar_url)',
+          )
+          .eq('kart_id', kartId)
+          .order('recorded_at', { ascending: false })
+          .limit(300),
+      ) as Row[]
+      return rows.map(
+        (r): Session => ({
+          id: r.id,
+          eventId: r.event_id,
+          kartId: r.kart_id,
+          label: r.label,
+          bestLapMs: r.best_lap_ms,
+          laps: r.laps,
+          trackCondition: r.track_condition,
+          conditionsNote: r.conditions_note,
+          balance: r.balance,
+          behaviour: r.behaviour,
+          driverFeedback: r.driver_feedback,
+          nextPlan: r.next_plan,
+          setupRevisionId: r.setup_revision_id,
+          recordedAt: r.recorded_at,
+          author: toAuthor(r.author),
+        }),
+      )
+    },
+
+    async saveSession(input) {
+      must(
+        await sb.from('sessions').upsert(
+          {
+            id: input.id,
+            event_id: input.eventId,
+            kart_id: input.kartId,
+            label: input.label,
+            best_lap_ms: input.bestLapMs,
+            laps: input.laps,
+            track_condition: input.trackCondition,
+            conditions_note: input.conditionsNote,
+            balance: input.balance,
+            behaviour: input.behaviour,
+            driver_feedback: input.driverFeedback,
+            next_plan: input.nextPlan,
+            setup_revision_id: input.setupRevisionId,
+            recorded_at: input.recordedAt,
+            author_id: await uid(),
+          },
+          { onConflict: 'id' },
+        ),
+      )
+    },
+
+    async deleteSession(sessionId) {
+      must(await sb.from('sessions').delete().eq('id', sessionId))
+    },
+
+    async setSessionFeedback(sessionId, text) {
+      must(await sb.rpc('set_session_feedback', { p_session: sessionId, p_text: text }))
     },
   }
 }

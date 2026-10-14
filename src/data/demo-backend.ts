@@ -9,6 +9,7 @@ import {
   type ChecklistItem,
   type CustomSetupField,
   type ScheduleItem,
+  type SessionInput,
   type TeamEvent,
   type Kart,
   type KartNoteInput,
@@ -64,6 +65,7 @@ interface DemoVariant {
 }
 
 interface DemoDb {
+  sessions: (SessionInput & { authorId: string })[]
   events: (TeamEvent & { teamId: string })[]
   schedule: ScheduleItem[]
   checklist: (ChecklistItem & { teamId: string })[]
@@ -186,6 +188,29 @@ function demoEvents(): Pick<DemoDb, 'events' | 'schedule' | 'checklist' | 'check
   }
 }
 
+/** Dve vzorové jazdy motokáry 95 dnes – s rôznym setupom, nech je čo porovnať. */
+function demoSessions(): Pick<DemoDb, 'sessions'> {
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString()
+  return {
+    sessions: [
+      {
+        id: 'ses-2', eventId: 'ev-race', kartId: 'kart-95', label: 'Voľný tréning 2',
+        bestLapMs: 54_403, laps: 14, trackCondition: 'dry', conditionsNote: 'Trať sa pogumovala',
+        balance: 'neutral', behaviour: 'Lepší výjazd z vlásenky, na brzdách stabilná.',
+        driverFeedback: 'Ide to lepšie, na rovinke ešte trochu chýba.', nextPlan: 'Skúsiť o 0,02 bar menej vzadu.',
+        setupRevisionId: 'rev-3', authorId: 'p-peter', recordedAt: hoursAgo(2),
+      },
+      {
+        id: 'ses-1', eventId: 'ev-race', kartId: 'kart-95', label: 'Voľný tréning 1',
+        bestLapMs: 54_812, laps: 12, trackCondition: 'dry', conditionsNote: '',
+        balance: 'understeer', behaviour: 'Nedotáča na vstupe do pomalých zákrut.',
+        driverFeedback: 'Volant je ťažký, predok nejde do zákruty.', nextPlan: 'Pridať zub na rozete.',
+        setupRevisionId: 'rev-2', authorId: 'p-peter', recordedAt: hoursAgo(5),
+      },
+    ],
+  }
+}
+
 /** Vzorové poznámky jazdca a servis motokáry 95. */
 function demoNotesService(): Pick<DemoDb, 'notes' | 'service'> {
   const day = 24 * 60 * 60 * 1000
@@ -233,6 +258,7 @@ function seed(): DemoDb {
     ...demoSetup(),
     ...demoNotesService(),
     ...demoEvents(),
+    ...demoSessions(),
     karts: [
       { id: 'kart-95', teamId, number: '95', driverName: 'Adam' },
       { id: 'kart-51', teamId, number: '51', driverName: 'Ema' },
@@ -244,7 +270,7 @@ function seed(): DemoDb {
 function load(): DemoDb {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return { ...demoSetup(), ...demoNotesService(), ...demoEvents(), ...(JSON.parse(raw) as DemoDb) }
+    if (raw) return { ...demoSetup(), ...demoNotesService(), ...demoEvents(), ...demoSessions(), ...(JSON.parse(raw) as DemoDb) }
   } catch {
     /* poškodené dáta – začneme odznova */
   }
@@ -379,6 +405,7 @@ export function createDemoBackend(): Backend {
         db.schedule = db.schedule.filter((s) => !eventIds.has(s.eventId))
         db.checks = db.checks.filter((c) => !eventIds.has(c.eventId))
         db.checklist = db.checklist.filter((c) => c.teamId !== teamId)
+        db.sessions = db.sessions.filter((s) => !kartIds.has(s.kartId))
       })
     },
 
@@ -721,6 +748,36 @@ export function createDemoBackend(): Backend {
             eventId: input.eventId, kartId: input.kartId, itemId: input.itemId, round: input.round,
             doneBy: ME, doneAt: new Date().toISOString(),
           })
+      })
+    },
+
+    async listSessions(kartId) {
+      await delay()
+      const db = load()
+      return db.sessions
+        .filter((s) => s.kartId === kartId)
+        .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
+        .map(({ authorId, ...s }) => ({ ...s, author: authorOf(db, authorId) }))
+    },
+
+    async saveSession(input) {
+      await delay()
+      mutate((db) => {
+        db.sessions = db.sessions.filter((s) => s.id !== input.id)
+        db.sessions.push({ ...input, authorId: ME })
+      })
+    },
+
+    async deleteSession(sessionId) {
+      await delay()
+      mutate((db) => (db.sessions = db.sessions.filter((s) => s.id !== sessionId)))
+    },
+
+    async setSessionFeedback(sessionId, text) {
+      await delay()
+      mutate((db) => {
+        const s = db.sessions.find((x) => x.id === sessionId)
+        if (s) s.driverFeedback = text
       })
     },
 

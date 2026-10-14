@@ -229,3 +229,30 @@ export interface CheckInput {
   round: number
   done: boolean
 }
+
+// ───────────── Jazdy ─────────────
+
+export type TrackCondition = 'dry' | 'damp' | 'wet'
+export type Balance = 'understeer' | 'neutral' | 'oversteer'
+
+export interface Session {
+  id: string
+  eventId: string
+  kartId: string
+  label: string
+  bestLapMs: number | null
+  laps: number | null
+  trackCondition: TrackCondition | null
+  conditionsNote: string
+  balance: Balance | null
+  behaviour: string
+  driverFeedback: string
+  nextPlan: string
+  /** Revízia setupu, ktorá bola na motokáre počas jazdy. */
+  setupRevisionId: string | null
+  author: Author
+  recordedAt: string
+  pending?: boolean
+}
+
+export type SessionInput = Omit<Session, 'author' | 'pending'>

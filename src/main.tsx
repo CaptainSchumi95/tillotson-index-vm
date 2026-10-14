@@ -9,7 +9,8 @@ import { AuthProvider } from '@/auth/AuthProvider'
 import { backend } from '@/data'
 import { qk, SAVE_NOTE_KEY, SAVE_SERVICE_KEY, SAVE_SETUP_KEY } from '@/data/queries'
 import { ek, SET_ROUND_KEY, TOGGLE_CHECK_KEY, type RoundInput } from '@/data/events'
-import type { CheckInput, KartNoteInput, ServiceEntryInput, SetupRevisionInput } from '@/data/types'
+import { SAVE_SESSION_KEY, sk } from '@/data/sessions'
+import type { CheckInput, KartNoteInput, ServiceEntryInput, SessionInput, SetupRevisionInput } from '@/data/types'
 import { QUERY_CACHE_KEY, QUERY_CACHE_SCHEMA } from '@/lib/cache'
 import { router } from '@/router'
 import '@/i18n'
@@ -33,10 +34,19 @@ const queryClient = new QueryClient({
 // Rovnako poznámky jazdca a servisné záznamy.
 const offline = { networkMode: 'online' as const, retry: 6, retryDelay: (n: number) => Math.min(1000 * 2 ** n, 30_000) }
 
+// Setup a jazdy v spoločnej fronte (scope): jazda odkazuje na revíziu setupu,
+// takže revízia musí na server doraziť skôr.
 queryClient.setMutationDefaults(SAVE_SETUP_KEY, {
   ...offline,
+  scope: { id: 'track' },
   mutationFn: (input: SetupRevisionInput) => backend.saveSetupRevision(input),
   onSettled: (_d, _e, input: SetupRevisionInput) => queryClient.invalidateQueries({ queryKey: qk.setup(input.kartId) }),
+})
+queryClient.setMutationDefaults(SAVE_SESSION_KEY, {
+  ...offline,
+  scope: { id: 'track' },
+  mutationFn: (input: SessionInput) => backend.saveSession(input),
+  onSettled: (_d, _e, input: SessionInput) => queryClient.invalidateQueries({ queryKey: sk.sessions(input.kartId) }),
 })
 queryClient.setMutationDefaults(SAVE_NOTE_KEY, {
   ...offline,

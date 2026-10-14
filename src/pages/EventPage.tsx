@@ -4,6 +4,7 @@ import { MapPin, Pencil, StickyNote } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ChecklistView } from '@/components/weekend/ChecklistView'
 import { ScheduleView } from '@/components/weekend/ScheduleView'
+import { SessionsTab } from '@/components/weekend/SessionsTab'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { KartPlate } from '@/components/ui/Identity'
@@ -16,7 +17,7 @@ import type { Kart } from '@/data/types'
 import { cn } from '@/lib/cn'
 import { dateRange } from '@/lib/time'
 
-type Tab = 'program' | 'checklist'
+type Tab = 'program' | 'checklist' | 'sessions'
 
 /** Detail udalosti: program a checklist motokár (/weekend/$eventId). */
 export function EventPage() {
@@ -98,12 +99,13 @@ export function EventPage() {
         options={[
           { value: 'program', label: t('weekend.tabs.program') },
           { value: 'checklist', label: t('weekend.tabs.checklist') },
+          { value: 'sessions', label: t('weekend.tabs.sessions') },
         ]}
       />
 
       {tab === 'program' && <ScheduleView event={event} canManage={can('event.manage')} />}
 
-      {tab === 'checklist' &&
+      {tab !== 'program' &&
         (kart ? (
           <>
             {eventKarts.length > 1 && (
@@ -124,14 +126,18 @@ export function EventPage() {
                 ))}
               </div>
             )}
-            <ChecklistView
-              key={kart.id}
-              teamId={team.id}
-              event={event}
-              kartId={kart.id}
-              canEdit={can('checklist.edit')}
-              canManageTemplate={can('team.manage')}
-            />
+            {tab === 'checklist' ? (
+              <ChecklistView
+                key={kart.id}
+                teamId={team.id}
+                event={event}
+                kartId={kart.id}
+                canEdit={can('checklist.edit')}
+                canManageTemplate={can('team.manage')}
+              />
+            ) : (
+              <SessionsTab eventId={event.id} kartId={kart.id} canEdit={can('session.edit')} />
+            )}
           </>
         ) : (
           <Card className="p-5 text-center text-ink-3">{t('weekend.noKartHere')}</Card>

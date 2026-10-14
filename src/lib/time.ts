@@ -68,3 +68,8 @@ export function nowTime(): string {
   const d = new Date()
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
+
+/** „st 15:08“ – krátky deň a čas (napr. jazdy v rámci víkendu). */
+export function weekdayTime(iso: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { weekday: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
+}

@@ -14,6 +14,8 @@ import { LoginPage } from '@/pages/LoginPage'
 import { NotesPage } from '@/pages/NotesPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
 import { ServicePage } from '@/pages/ServicePage'
+import { SessionEditPage } from '@/pages/SessionEditPage'
+import { SessionPage } from '@/pages/SessionPage'
 import { RoleEditorPage } from '@/pages/RoleEditorPage'
 import { RolesPage } from '@/pages/RolesPage'
 import { TracksPage } from '@/pages/PlaceholderPages'
@@ -115,10 +117,25 @@ const routeTree = rootRoute.addChildren([
       getParentRoute: () => shellRoute,
       path: '/weekend/$eventId',
       component: EventPage,
-      validateSearch: (s: Record<string, unknown>): { tab?: 'checklist' } =>
-        s.tab === 'checklist' ? { tab: 'checklist' } : {},
+      validateSearch: (s: Record<string, unknown>): { tab?: 'checklist' | 'sessions' } =>
+        s.tab === 'checklist' || s.tab === 'sessions' ? { tab: s.tab } : {},
     }),
     page('/weekend/$eventId/edit', EventEditPage),
+    // Jazdy – motokára sa posiela v adrese (?kart=…)
+    ...(
+      [
+        ['/weekend/$eventId/sessions/new', SessionEditPage],
+        ['/weekend/$eventId/sessions/$sessionId', SessionPage],
+        ['/weekend/$eventId/sessions/$sessionId/edit', SessionEditPage],
+      ] as const
+    ).map(([path, component]) =>
+      createRoute({
+        getParentRoute: () => shellRoute,
+        path,
+        component,
+        validateSearch: (s: Record<string, unknown>): { kart?: string } => (typeof s.kart === 'string' ? { kart: s.kart } : {}),
+      }),
+    ),
     page('/team/checklist', ChecklistTemplatePage),
     page('/setup', SetupPage),
     page('/setup/edit', SetupEditPage),

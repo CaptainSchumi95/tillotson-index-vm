@@ -18,6 +18,8 @@ import type {
   ProfilePatch,
   RoleInput,
   ScheduleItem,
+  Session,
+  SessionInput,
   SetupRevision,
   SetupRevisionInput,
   SetupVariant,
@@ -110,4 +112,12 @@ export interface Backend {
   setCheck(input: CheckInput): Promise<void>
   /** Posun na ďalšiu jazdu (vynuluje Pred/Po jazde). */
   setRound(eventId: string, kartId: string, round: number): Promise<void>
+
+  /** Všetky jazdy motokáry (naprieč udalosťami), najnovšia prvá. */
+  listSessions(kartId: string): Promise<Session[]>
+  /** Vytvorí alebo prepíše jazdu (id generuje aplikácia – bezpečné offline). */
+  saveSession(input: SessionInput): Promise<void>
+  deleteSession(sessionId: string): Promise<void>
+  /** Spätná väzba jazdca – smie aj jazdec bez práva upravovať jazdy. */
+  setSessionFeedback(sessionId: string, text: string): Promise<void>
 }
