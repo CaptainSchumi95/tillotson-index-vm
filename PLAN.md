@@ -70,7 +70,7 @@ Predvolené roly: **manažér, šéfmechanik, mechanik, jazdec** (jazdec bez `se
 
 ## 5. Fázy
 
-### Fáza 1 – Základ ✅ (čaká na pripojenie Supabase a Google)
+### Fáza 1 – Základ ✅
 - Projekt, PWA (manifest, service worker, ikony), i18n, systém jednotiek
 - Supabase schéma + RLS, prihlásenie Google
 - Profil (meno, foto, jazyk, jednotky)
@@ -79,7 +79,7 @@ Predvolené roly: **manažér, šéfmechanik, mechanik, jazdec** (jazdec bez `se
 - Navigácia 5 sekcií (spodná lišta na mobile, bočná na PC)
 - Branding „Vyvinul Vilim Motorsport“ – prihlasovacia obrazovka + *O aplikácii*
 
-### Fáza 2 – Tím
+### Fáza 2 – Tím ✅ (bez kategórií – pribudnú, keď budú treba)
 - Členovia (pozvanie cez e-mail), roly, editor vlastných rolí a oprávnení
 - Motokáry, kategórie, pridelenia, vzhľad tímu
 

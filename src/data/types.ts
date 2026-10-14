@@ -54,7 +54,27 @@ export interface Member {
   membershipId: string
   profile: Pick<Profile, 'id' | 'name' | 'email' | 'avatarUrl'>
   role: Role
+  kartIds: string[]
 }
+
+/** Rola so zoznamom oprávnení – pre editor rolí. */
+export interface TeamRole extends Role {
+  permissions: Permission[]
+  memberCount: number
+}
+
+export interface Invitation {
+  id: string
+  email: string
+  role: Role
+  kartIds: string[]
+}
+
+export type InviteResult = 'added' | 'invited'
+
+/** Kódy chýb z databázy, ktoré vieme vysvetliť používateľovi. */
+export const KNOWN_ERRORS = ['last_manager', 'already_member', 'invalid_email', 'role_in_use', 'forbidden'] as const
+export type KnownError = (typeof KNOWN_ERRORS)[number]
 
 export interface Kart {
   id: string
@@ -66,3 +86,8 @@ export interface Kart {
 export type ProfilePatch = Partial<Pick<Profile, 'name' | 'avatarUrl' | 'locale' | 'unitPrefs'>>
 export type TeamPatch = Partial<Pick<Team, 'name' | 'color' | 'iconUrl'>>
 export type KartInput = Pick<Kart, 'number' | 'driverName'>
+export interface RoleInput {
+  id?: string
+  name: string
+  permissions: Permission[]
+}

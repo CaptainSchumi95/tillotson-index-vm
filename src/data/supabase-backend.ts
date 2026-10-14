@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { normalizeUnitPrefs } from '@/lib/units'
 import type { AuthUser, Backend } from './backend'
-import type { Kart, Member, MyTeam, Permission, Role } from './types'
+import { KNOWN_ERRORS, type Invitation, type Kart, type Member, type MyTeam, type Permission, type Role, type TeamRole } from './types'
 
 type Row = Record<string, any>
 
@@ -13,8 +13,12 @@ function toKart(r: Row): Kart {
   return { id: r.id, teamId: r.team_id, number: r.number, driverName: r.driver_name }
 }
 
-function must<T>(res: { data: T; error: unknown }): T {
-  if (res.error) throw res.error
+/** Chyby z databázových funkcií (raise exception 'last_manager' …) prevedie na známy kód. */
+function must<T>(res: { data: T; error: { message?: string } | null }): T {
+  if (res.error) {
+    const code = KNOWN_ERRORS.find((c) => res.error?.message === c)
+    throw code ? new Error(code) : res.error
+  }
   return res.data
 }
 
@@ -133,7 +137,9 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
       const rows = must(
         await sb
           .from('memberships')
-          .select('id, profile:profiles(id, name, email, avatar_url), role:roles(id, name, preset, sort_order)')
+          .select(
+            'id, profile:profiles(id, name, email, avatar_url), role:roles(id, name, preset, sort_order), kart_assignments(kart_id)',
+          )
           .eq('team_id', teamId),
       ) as Row[]
       return rows
@@ -143,8 +149,70 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
             membershipId: m.id,
             profile: { id: m.profile.id, name: m.profile.name, email: m.profile.email, avatarUrl: m.profile.avatar_url },
             role: toRole(m.role),
+            kartIds: (m.kart_assignments as Row[]).map((a) => a.kart_id),
           }),
         )
+    },
+
+    async updateMember(membershipId, roleId, kartIds) {
+      must(await sb.rpc('update_member', { p_membership: membershipId, p_role: roleId, p_karts: kartIds }))
+    },
+
+    async removeMember(membershipId) {
+      must(await sb.rpc('remove_member', { p_membership: membershipId }))
+    },
+
+    async listInvitations(teamId) {
+      const rows = must(
+        await sb
+          .from('invitations')
+          .select('id, email, kart_ids, role:roles(id, name, preset)')
+          .eq('team_id', teamId)
+          .order('created_at'),
+      ) as Row[]
+      return rows.map((r): Invitation => ({ id: r.id, email: r.email, role: toRole(r.role), kartIds: r.kart_ids ?? [] }))
+    },
+
+    async inviteMember(teamId, email, roleId, kartIds) {
+      return must(
+        await sb.rpc('invite_member', { p_team: teamId, p_email: email, p_role: roleId, p_karts: kartIds }),
+      ) as 'added' | 'invited'
+    },
+
+    async cancelInvitation(invitationId) {
+      must(await sb.from('invitations').delete().eq('id', invitationId))
+    },
+
+    async listRoles(teamId) {
+      const rows = must(
+        await sb
+          .from('roles')
+          .select('id, name, preset, sort_order, role_permissions(permission), memberships(count)')
+          .eq('team_id', teamId)
+          .order('sort_order'),
+      ) as Row[]
+      return rows.map(
+        (r): TeamRole => ({
+          ...toRole(r),
+          permissions: (r.role_permissions as Row[]).map((p) => p.permission as Permission),
+          memberCount: r.memberships?.[0]?.count ?? 0,
+        }),
+      )
+    },
+
+    async saveRole(teamId, input) {
+      return must(
+        await sb.rpc('save_role', {
+          p_team: teamId,
+          p_role: input.id ?? null,
+          p_name: input.name,
+          p_permissions: input.permissions,
+        }),
+      ) as string
+    },
+
+    async deleteRole(roleId) {
+      must(await sb.rpc('delete_role', { p_role: roleId }))
     },
 
     async listKarts(teamId) {
@@ -167,6 +235,10 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
 
     async updateKart(kartId, input) {
       must(await sb.from('karts').update({ number: input.number, driver_name: input.driverName }).eq('id', kartId))
+    },
+
+    async archiveKart(kartId) {
+      must(await sb.from('karts').update({ archived: true }).eq('id', kartId))
     },
   }
 }

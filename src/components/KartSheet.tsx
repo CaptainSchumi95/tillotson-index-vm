@@ -1,8 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSaveKart } from '@/data/queries'
+import { Trash2 } from 'lucide-react'
+import { safe, useArchiveKart, useSaveKart } from '@/data/queries'
 import type { Kart } from '@/data/types'
 import { Button } from './ui/Button'
+import { ConfirmSheet } from './ui/ConfirmSheet'
 import { Field } from './ui/Field'
 import { KartPlate } from './ui/Identity'
 import { Sheet } from './ui/Sheet'
@@ -23,6 +25,8 @@ export function KartSheet({
 }) {
   const { t } = useTranslation()
   const save = useSaveKart(teamId)
+  const archive = useArchiveKart(teamId)
+  const [confirm, setConfirm] = useState(false)
   const [number, setNumber] = useState('')
   const [driverName, setDriverName] = useState('')
 
@@ -38,14 +42,23 @@ export function KartSheet({
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!valid) return
-    const id = await save.mutateAsync({ id: kart?.id, number: number.trim(), driverName: driverName.trim() })
+    const r = await safe(save.mutateAsync({ id: kart?.id, number: number.trim(), driverName: driverName.trim() }))
+    if (!r.ok) return
     onOpenChange(false)
-    onSaved?.(id)
+    onSaved?.(r.value)
+  }
+
+  async function doArchive() {
+    if (!kart) return
+    if (!(await safe(archive.mutateAsync(kart.id))).ok) return
+    setConfirm(false)
+    onOpenChange(false)
   }
 
   return (
+    <>
     <Sheet
-      open={open}
+      open={open && !confirm}
       onOpenChange={onOpenChange}
       title={kart ? t('team.editKart') : t('team.addKart')}
       footer={
@@ -75,7 +88,29 @@ export function KartSheet({
           autoComplete="off"
         />
         {save.isError && <p className="text-[0.9rem] text-danger">{t('common.error')}</p>}
+        {kart && (
+          <Button
+            type="button"
+            variant="ghost"
+            block
+            className="text-danger! hover:bg-danger/10!"
+            icon={<Trash2 className="size-5" />}
+            onClick={() => setConfirm(true)}
+          >
+            {t('team.removeKart')}
+          </Button>
+        )}
       </form>
     </Sheet>
+    <ConfirmSheet
+      open={confirm}
+      onOpenChange={setConfirm}
+      title={t('team.removeKart')}
+      body={t('team.removeKartConfirm', { number: kart?.number ?? '' })}
+      confirmLabel={t('team.removeKart')}
+      loading={archive.isPending}
+      onConfirm={() => void doArchive()}
+    />
+    </>
   )
 }

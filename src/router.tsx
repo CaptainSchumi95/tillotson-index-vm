@@ -11,6 +11,8 @@ import { CreateTeamPage } from '@/pages/CreateTeamPage'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
+import { RoleEditorPage } from '@/pages/RoleEditorPage'
+import { RolesPage } from '@/pages/RolesPage'
 import { SetupPage, TracksPage, WeekendPage } from '@/pages/PlaceholderPages'
 import { SelectPage } from '@/pages/SelectPage'
 import { SettingsPage } from '@/pages/SettingsPage'
@@ -100,6 +102,8 @@ const routeTree = rootRoute.addChildren([
     page('/tracks', TracksPage),
     page('/team', TeamPage),
     page('/team/appearance', TeamAppearancePage),
+    page('/team/roles', RolesPage),
+    page('/team/roles/$roleId', RoleEditorPage),
     page('/settings', SettingsPage),
     page('/about', AboutPage),
   ]),

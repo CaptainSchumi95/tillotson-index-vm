@@ -9,7 +9,7 @@ import { Field } from '@/components/ui/Field'
 import { KartPlate, TeamBadge } from '@/components/ui/Identity'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { backend } from '@/data'
-import { useCan, useCurrentTeam, useUpdateTeam } from '@/data/queries'
+import { safe, useCan, useCurrentTeam, useUpdateTeam } from '@/data/queries'
 import { compressImage } from '@/lib/image'
 import { accentVars } from '@/lib/theme'
 
@@ -47,7 +47,7 @@ export function TeamAppearancePage() {
 
   async function submit(e: FormEvent) {
     e.preventDefault()
-    await update.mutateAsync({ name: name.trim(), color, iconUrl })
+    if (!(await safe(update.mutateAsync({ name: name.trim(), color, iconUrl }))).ok) return
     router.history.back()
   }
 

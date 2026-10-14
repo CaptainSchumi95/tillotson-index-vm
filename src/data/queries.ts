@@ -1,13 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useWorkspace } from '@/state/workspace'
 import { backend } from '.'
-import type { KartInput, Permission, ProfilePatch, TeamPatch } from './types'
+import { KNOWN_ERRORS, type KartInput, type KnownError, type Permission, type ProfilePatch, type RoleInput, type TeamPatch } from './types'
 
 export const qk = {
   profile: ['profile'] as const,
   teams: ['teams'] as const,
   members: (teamId: string) => ['members', teamId] as const,
   karts: (teamId: string) => ['karts', teamId] as const,
+  roles: (teamId: string) => ['roles', teamId] as const,
+  invitations: (teamId: string) => ['invitations', teamId] as const,
+}
+
+/** Známy kód chyby z databázy (napr. 'last_manager'), inak null. */
+export function errorCode(error: unknown): KnownError | null {
+  const msg = error instanceof Error ? error.message : ''
+  return (KNOWN_ERRORS as readonly string[]).includes(msg) ? (msg as KnownError) : null
 }
 
 // ───────────── Profil ─────────────
@@ -99,4 +107,92 @@ export function useSaveKart(teamId: string) {
       id ? backend.updateKart(id, input).then(() => id) : backend.createKart(teamId, input),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.karts(teamId) }),
   })
+}
+
+export function useArchiveKart(teamId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (kartId: string) => backend.archiveKart(kartId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.karts(teamId) }),
+  })
+}
+
+// ───────────── Členovia, pozvánky, roly ─────────────
+
+/** Po zmene členov alebo rolí obnoví všetko, čo od nich závisí (aj moje oprávnenia). */
+function useInvalidateTeam(teamId: string) {
+  const qc = useQueryClient()
+  return () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: qk.members(teamId) }),
+      qc.invalidateQueries({ queryKey: qk.invitations(teamId) }),
+      qc.invalidateQueries({ queryKey: qk.roles(teamId) }),
+      qc.invalidateQueries({ queryKey: qk.teams }),
+    ])
+}
+
+export function useInvitations(teamId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: qk.invitations(teamId ?? ''),
+    queryFn: () => backend.listInvitations(teamId!),
+    enabled: !!teamId && enabled,
+  })
+}
+
+export function useRoles(teamId: string | undefined) {
+  return useQuery({
+    queryKey: qk.roles(teamId ?? ''),
+    queryFn: () => backend.listRoles(teamId!),
+    enabled: !!teamId,
+  })
+}
+
+export function useInviteMember(teamId: string) {
+  const invalidate = useInvalidateTeam(teamId)
+  return useMutation({
+    mutationFn: ({ email, roleId, kartIds }: { email: string; roleId: string; kartIds: string[] }) =>
+      backend.inviteMember(teamId, email, roleId, kartIds),
+    onSuccess: invalidate,
+  })
+}
+
+export function useCancelInvitation(teamId: string) {
+  const invalidate = useInvalidateTeam(teamId)
+  return useMutation({ mutationFn: (id: string) => backend.cancelInvitation(id), onSuccess: invalidate })
+}
+
+export function useUpdateMember(teamId: string) {
+  const invalidate = useInvalidateTeam(teamId)
+  return useMutation({
+    mutationFn: ({ membershipId, roleId, kartIds }: { membershipId: string; roleId: string; kartIds: string[] }) =>
+      backend.updateMember(membershipId, roleId, kartIds),
+    onSuccess: invalidate,
+  })
+}
+
+export function useRemoveMember(teamId: string) {
+  const invalidate = useInvalidateTeam(teamId)
+  return useMutation({ mutationFn: (id: string) => backend.removeMember(id), onSuccess: invalidate })
+}
+
+export function useSaveRole(teamId: string) {
+  const invalidate = useInvalidateTeam(teamId)
+  return useMutation({ mutationFn: (input: RoleInput) => backend.saveRole(teamId, input), onSuccess: invalidate })
+}
+
+export function useDeleteRole(teamId: string) {
+  const invalidate = useInvalidateTeam(teamId)
+  return useMutation({ mutationFn: (roleId: string) => backend.deleteRole(roleId), onSuccess: invalidate })
+}
+
+/**
+ * Počká na mutáciu bez neošetrenej chyby – chybu zobrazí stav mutácie (isError).
+ * Pri neúspechu vráti ok: false, aby sa nevykonal krok, ktorý nasleduje (napr. zatvorenie panela).
+ */
+export async function safe<T>(promise: Promise<T>): Promise<{ ok: true; value: T } | { ok: false }> {
+  try {
+    return { ok: true, value: await promise }
+  } catch {
+    return { ok: false }
+  }
 }

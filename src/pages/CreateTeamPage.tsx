@@ -8,7 +8,7 @@ import { ColorPicker } from '@/components/ui/ColorPicker'
 import { Field } from '@/components/ui/Field'
 import { KartPlate, TeamBadge } from '@/components/ui/Identity'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { useCreateTeam, useProfile } from '@/data/queries'
+import { safe, useCreateTeam, useProfile } from '@/data/queries'
 import { TEAM_COLORS } from '@/lib/color'
 import { accentVars } from '@/lib/theme'
 import { useWorkspace } from '@/state/workspace'
@@ -28,8 +28,9 @@ export function CreateTeamPage({ first }: { first?: boolean }) {
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
-    const id = await create.mutateAsync({ name: name.trim(), color })
-    selectTeam(id)
+    const r = await safe(create.mutateAsync({ name: name.trim(), color }))
+    if (!r.ok) return
+    selectTeam(r.value)
     void navigate({ to: '/select' })
   }
 

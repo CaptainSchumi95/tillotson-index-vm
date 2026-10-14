@@ -11,7 +11,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { Segmented } from '@/components/ui/Segmented'
 import { Spinner } from '@/components/ui/Spinner'
 import { backend } from '@/data'
-import { useProfile, useUpdateProfile } from '@/data/queries'
+import { safe, useProfile, useUpdateProfile } from '@/data/queries'
 import { LANGUAGES } from '@/i18n'
 import { compressImage } from '@/lib/image'
 import type { ThemeMode } from '@/lib/theme'
@@ -41,7 +41,7 @@ export function SettingsPage() {
   async function saveName() {
     const v = name.trim()
     if (!v || v === p?.name) return
-    await update.mutateAsync({ name: v })
+    if (!(await safe(update.mutateAsync({ name: v }))).ok) return
     setSavedName(true)
     setTimeout(() => setSavedName(false), 1800)
   }
@@ -51,7 +51,7 @@ export function SettingsPage() {
     setUploading(true)
     try {
       const url = await backend.uploadAvatar(await compressImage(file, 384))
-      await update.mutateAsync({ avatarUrl: url })
+      await safe(update.mutateAsync({ avatarUrl: url }))
     } finally {
       setUploading(false)
     }
