@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { ArrowLeftRight, Info, LogOut, Mail, Palette, Plus, Settings, ShieldCheck, UserPlus } from 'lucide-react'
+import { ArrowLeftRight, Info, LogOut, Mail, Palette, Plus, Settings, ShieldCheck, Trash2, UserPlus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { KartSheet } from '@/components/KartSheet'
+import { DeleteTeamSheet } from '@/components/team/DeleteTeamSheet'
 import { InviteSheet } from '@/components/team/InviteSheet'
 import { MemberSheet } from '@/components/team/MemberSheet'
 import { useRoleName } from '@/components/team/pickers'
@@ -45,6 +46,7 @@ export function TeamPage() {
   const [member, setMember] = useState<Member | null>(null)
   const [memberOpen, setMemberOpen] = useState(false)
   const [pending, setPending] = useState<Invitation | null>(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   if (!team) return null
 
@@ -222,8 +224,23 @@ export function TeamPage() {
             )}
           </ListGroup>
         </Section>
+
+        {manage && (
+          <Section title={t('team.dangerZone')}>
+            <Button
+              variant="ghost"
+              block
+              className="justify-start! px-4! text-danger! hover:bg-danger/10!"
+              icon={<Trash2 className="size-5" />}
+              onClick={() => setDeleteOpen(true)}
+            >
+              {t('team.deleteTeam')}
+            </Button>
+          </Section>
+        )}
       </div>
 
+      <DeleteTeamSheet teamId={team.id} teamName={team.name} open={deleteOpen} onOpenChange={setDeleteOpen} />
       <KartSheet teamId={team.id} kart={editingKart} open={kartOpen} onOpenChange={setKartOpen} />
       <InviteSheet teamId={team.id} open={inviteOpen} onOpenChange={setInviteOpen} />
       <MemberSheet

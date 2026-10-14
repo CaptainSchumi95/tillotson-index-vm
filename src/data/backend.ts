@@ -2,6 +2,10 @@ import type {
   CustomSetupField,
   InviteResult,
   Invitation,
+  KartNote,
+  KartNoteInput,
+  ServiceEntry,
+  ServiceEntryInput,
   Kart,
   KartInput,
   Member,
@@ -40,6 +44,8 @@ export interface Backend {
   createTeam(name: string, color: string): Promise<string>
   updateTeam(teamId: string, patch: TeamPatch): Promise<void>
   uploadTeamIcon(teamId: string, file: Blob): Promise<string>
+  /** Nevratne zmaže tím so všetkými dátami. */
+  deleteTeam(teamId: string): Promise<void>
   listMembers(teamId: string): Promise<Member[]>
 
   updateMember(membershipId: string, roleId: string, kartIds: string[]): Promise<void>
@@ -70,4 +76,14 @@ export interface Backend {
   listSetupFields(teamId: string): Promise<CustomSetupField[]>
   saveSetupField(teamId: string, input: Omit<CustomSetupField, 'id'> & { id?: string }): Promise<string>
   deleteSetupField(fieldId: string): Promise<void>
+
+  listNotes(kartId: string): Promise<KartNote[]>
+  /** Idempotentné (id generuje aplikácia) – bezpečné pri offline uložení. */
+  saveNote(input: KartNoteInput): Promise<void>
+  deleteNote(noteId: string): Promise<void>
+
+  listService(kartId: string): Promise<ServiceEntry[]>
+  /** Idempotentné (id generuje aplikácia) – bezpečné pri offline uložení. */
+  saveService(input: ServiceEntryInput): Promise<void>
+  deleteService(entryId: string): Promise<void>
 }

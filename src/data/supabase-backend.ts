@@ -5,6 +5,8 @@ import {
   KNOWN_ERRORS,
   type CustomSetupField,
   type Invitation,
+  type KartNote,
+  type ServiceEntry,
   type Kart,
   type Member,
   type MyTeam,
@@ -19,6 +21,10 @@ type Row = Record<string, any>
 
 function toRole(r: Row): Role {
   return { id: r.id, name: r.name, preset: r.preset ?? null }
+}
+
+function toAuthor(r: Row | null) {
+  return r ? { id: r.id as string, name: r.name as string, avatarUrl: r.avatar_url as string | null } : null
 }
 
 function toKart(r: Row): Kart {
@@ -139,6 +145,10 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
       if (patch.color !== undefined) row.color = patch.color
       if (patch.iconUrl !== undefined) row.icon_url = patch.iconUrl
       must(await sb.from('teams').update(row).eq('id', teamId))
+    },
+
+    async deleteTeam(teamId) {
+      must(await sb.from('teams').delete().eq('id', teamId))
     },
 
     async uploadTeamIcon(teamId, file) {
@@ -330,6 +340,77 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
 
     async deleteSetupField(fieldId) {
       must(await sb.from('setup_fields').delete().eq('id', fieldId))
+    },
+
+    async listNotes(kartId) {
+      const rows = must(
+        await sb
+          .from('kart_notes')
+          .select('id, kart_id, text, recorded_at, author:profiles(id, name, avatar_url)')
+          .eq('kart_id', kartId)
+          .order('recorded_at', { ascending: false })
+          .limit(200),
+      ) as Row[]
+      return rows.map(
+        (r): KartNote => ({ id: r.id, kartId: r.kart_id, text: r.text, recordedAt: r.recorded_at, author: toAuthor(r.author) }),
+      )
+    },
+
+    async saveNote(input) {
+      must(
+        await sb
+          .from('kart_notes')
+          .upsert(
+            { id: input.id, kart_id: input.kartId, text: input.text, recorded_at: input.recordedAt, author_id: await uid() },
+            { onConflict: 'id', ignoreDuplicates: true },
+          ),
+      )
+    },
+
+    async deleteNote(noteId) {
+      must(await sb.from('kart_notes').delete().eq('id', noteId))
+    },
+
+    async listService(kartId) {
+      const rows = must(
+        await sb
+          .from('service_log')
+          .select('id, kart_id, kind, performed_on, note, author:profiles(id, name, avatar_url)')
+          .eq('kart_id', kartId)
+          .order('performed_on', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(200),
+      ) as Row[]
+      return rows.map(
+        (r): ServiceEntry => ({
+          id: r.id,
+          kartId: r.kart_id,
+          kind: r.kind,
+          performedOn: r.performed_on,
+          note: r.note,
+          author: toAuthor(r.author),
+        }),
+      )
+    },
+
+    async saveService(input) {
+      must(
+        await sb.from('service_log').upsert(
+          {
+            id: input.id,
+            kart_id: input.kartId,
+            kind: input.kind,
+            performed_on: input.performedOn,
+            note: input.note,
+            author_id: await uid(),
+          },
+          { onConflict: 'id', ignoreDuplicates: true },
+        ),
+      )
+    },
+
+    async deleteService(entryId) {
+      must(await sb.from('service_log').delete().eq('id', entryId))
     },
   }
 }

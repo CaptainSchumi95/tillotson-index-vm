@@ -131,3 +131,34 @@ export interface CustomSetupField {
   label: string
   unit: FieldUnit
 }
+
+// ───────────── Poznámky a servis ─────────────
+
+type Author = Pick<Profile, 'id' | 'name' | 'avatarUrl'> | null
+
+export interface KartNote {
+  id: string
+  kartId: string
+  text: string
+  author: Author
+  recordedAt: string
+  pending?: boolean
+}
+
+export type KartNoteInput = Pick<KartNote, 'id' | 'kartId' | 'text' | 'recordedAt'>
+
+export const SERVICE_KINDS = ['oil', 'chain', 'spark_plug', 'air_filter', 'clutch', 'other'] as const
+export type ServiceKind = (typeof SERVICE_KINDS)[number]
+
+export interface ServiceEntry {
+  id: string
+  kartId: string
+  kind: ServiceKind
+  /** Dátum vo formáte RRRR-MM-DD. */
+  performedOn: string
+  note: string
+  author: Author
+  pending?: boolean
+}
+
+export type ServiceEntryInput = Pick<ServiceEntry, 'id' | 'kartId' | 'kind' | 'performedOn' | 'note'>

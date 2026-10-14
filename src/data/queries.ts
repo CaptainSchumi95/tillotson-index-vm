@@ -6,6 +6,10 @@ import {
   KNOWN_ERRORS,
   type CustomSetupField,
   type KartInput,
+  type KartNote,
+  type KartNoteInput,
+  type ServiceEntry,
+  type ServiceEntryInput,
   type KnownError,
   type Permission,
   type ProfilePatch,
@@ -26,6 +30,8 @@ export const qk = {
   setup: (kartId: string) => ['setup', 'revisions', kartId] as const,
   variants: (kartId: string) => ['setup', 'variants', kartId] as const,
   setupFields: (teamId: string) => ['setup', 'fields', teamId] as const,
+  notes: (kartId: string) => ['notes', kartId] as const,
+  service: (kartId: string) => ['service', kartId] as const,
 }
 
 /** Známy kód chyby z databázy (napr. 'last_manager'), inak null. */
@@ -310,5 +316,78 @@ export function useDeleteSetupField(teamId: string) {
   return useMutation({
     mutationFn: (id: string) => backend.deleteSetupField(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.setupFields(teamId) }),
+  })
+}
+
+// ───────────── Tím: vymazanie ─────────────
+
+export function useDeleteTeam() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (teamId: string) => backend.deleteTeam(teamId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.teams }),
+  })
+}
+
+// ───────────── Poznámky jazdca a servis (fungujú aj offline) ─────────────
+
+export const SAVE_NOTE_KEY = ['notes', 'save'] as const
+export const SAVE_SERVICE_KEY = ['service', 'save'] as const
+
+function useAuthor() {
+  const p = useProfile().data
+  return p ? { id: p.id, name: p.name, avatarUrl: p.avatarUrl } : null
+}
+
+export function useNotes(kartId: string | undefined) {
+  return useQuery({ queryKey: qk.notes(kartId ?? ''), queryFn: () => backend.listNotes(kartId!), enabled: !!kartId })
+}
+
+/** mutationFn je v setMutationDefaults (main.tsx) – záznam prežije aj zatvorenie aplikácie bez signálu. */
+export function useSaveNote(kartId: string) {
+  const qc = useQueryClient()
+  const author = useAuthor()
+  return useMutation({
+    mutationKey: SAVE_NOTE_KEY,
+    onMutate: async (input: KartNoteInput) => {
+      await qc.cancelQueries({ queryKey: qk.notes(kartId) })
+      qc.setQueryData<KartNote[]>(qk.notes(kartId), (cur) => [{ ...input, author, pending: true }, ...(cur ?? [])])
+    },
+  })
+}
+
+export function useDeleteNote(kartId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => backend.deleteNote(id),
+    onMutate: (id) => qc.setQueryData<KartNote[]>(qk.notes(kartId), (cur) => cur?.filter((n) => n.id !== id)),
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.notes(kartId) }),
+  })
+}
+
+export function useService(kartId: string | undefined) {
+  return useQuery({ queryKey: qk.service(kartId ?? ''), queryFn: () => backend.listService(kartId!), enabled: !!kartId })
+}
+
+export function useSaveService(kartId: string) {
+  const qc = useQueryClient()
+  const author = useAuthor()
+  return useMutation({
+    mutationKey: SAVE_SERVICE_KEY,
+    onMutate: async (input: ServiceEntryInput) => {
+      await qc.cancelQueries({ queryKey: qk.service(kartId) })
+      qc.setQueryData<ServiceEntry[]>(qk.service(kartId), (cur) =>
+        [{ ...input, author, pending: true }, ...(cur ?? [])].sort((a, b) => b.performedOn.localeCompare(a.performedOn)),
+      )
+    },
+  })
+}
+
+export function useDeleteService(kartId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => backend.deleteService(id),
+    onMutate: (id) => qc.setQueryData<ServiceEntry[]>(qk.service(kartId), (cur) => cur?.filter((s) => s.id !== id)),
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.service(kartId) }),
   })
 }

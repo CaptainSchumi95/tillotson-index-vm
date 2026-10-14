@@ -8,6 +8,8 @@ import {
   PERMISSIONS,
   type CustomSetupField,
   type Kart,
+  type KartNoteInput,
+  type ServiceEntryInput,
   type Permission,
   type Profile,
   type RolePreset,
@@ -59,6 +61,8 @@ interface DemoVariant {
 }
 
 interface DemoDb {
+  notes: (KartNoteInput & { authorId: string })[]
+  service: (ServiceEntryInput & { authorId: string; createdAt: string })[]
   revisions: DemoRevision[]
   variants: DemoVariant[]
   fields: (CustomSetupField & { teamId: string })[]
@@ -116,6 +120,23 @@ function demoSetup(): Pick<DemoDb, 'revisions' | 'variants' | 'fields'> {
   }
 }
 
+/** Vzorové poznámky jazdca a servis motokáry 95. */
+function demoNotesService(): Pick<DemoDb, 'notes' | 'service'> {
+  const day = 24 * 60 * 60 * 1000
+  const iso = (offset: number) => new Date(Date.now() - offset).toISOString()
+  const date = (offset: number) => iso(offset).slice(0, 10)
+  return {
+    notes: [
+      { id: 'note-2', kartId: 'kart-95', text: 'Na brzdách vpredu sa zadok trochu vlní, inak super. Na rovinke to ťahá lepšie ako minule.', authorId: 'p-adam', recordedAt: iso(3 * 60 * 60 * 1000) },
+      { id: 'note-1', kartId: 'kart-95', text: 'Volant je trochu ťažký v pomalých zákrutách.', authorId: 'p-adam', recordedAt: iso(2 * day) },
+    ],
+    service: [
+      { id: 'srv-2', kartId: 'kart-95', kind: 'oil', performedOn: date(5 * day), note: '', authorId: 'p-peter', createdAt: iso(5 * day) },
+      { id: 'srv-1', kartId: 'kart-95', kind: 'spark_plug', performedOn: date(12 * day), note: 'NGK, nová', authorId: ME, createdAt: iso(12 * day) },
+    ],
+  }
+}
+
 function seed(): DemoDb {
   const teamId = 'team-demo'
   const profile: Profile = {
@@ -144,6 +165,7 @@ function seed(): DemoDb {
     ],
     invitations: [],
     ...demoSetup(),
+    ...demoNotesService(),
     karts: [
       { id: 'kart-95', teamId, number: '95', driverName: 'Adam' },
       { id: 'kart-51', teamId, number: '51', driverName: 'Ema' },
@@ -155,7 +177,7 @@ function seed(): DemoDb {
 function load(): DemoDb {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return { ...demoSetup(), ...(JSON.parse(raw) as DemoDb) }
+    if (raw) return { ...demoSetup(), ...demoNotesService(), ...(JSON.parse(raw) as DemoDb) }
   } catch {
     /* poškodené dáta – začneme odznova */
   }
@@ -168,6 +190,11 @@ function save(db: DemoDb) {
 
 const delay = () => new Promise((r) => setTimeout(r, 120))
 const uid = () => crypto.randomUUID()
+
+function authorOf(db: DemoDb, profileId: string) {
+  const p = db.members.find((m) => m.profile.id === profileId)?.profile
+  return p ? { id: p.id, name: p.name, avatarUrl: p.avatarUrl } : null
+}
 
 /** Rovnaká poistka ako v databáze: tím musí mať aspoň jedného manažéra. */
 function ensureManager(db: DemoDb, teamId: string) {
@@ -263,6 +290,23 @@ export function createDemoBackend(): Backend {
     async updateTeam(teamId, patch) {
       await delay()
       mutate((db) => Object.assign(db.teams.find((t) => t.id === teamId)!, patch))
+    },
+
+    async deleteTeam(teamId) {
+      await delay()
+      mutate((db) => {
+        db.teams = db.teams.filter((t) => t.id !== teamId)
+        db.members = db.members.filter((m) => m.teamId !== teamId)
+        db.roles = db.roles.filter((r) => r.teamId !== teamId)
+        db.invitations = db.invitations.filter((i) => i.teamId !== teamId)
+        const kartIds = new Set(db.karts.filter((k) => k.teamId === teamId).map((k) => k.id))
+        db.karts = db.karts.filter((k) => k.teamId !== teamId)
+        db.revisions = db.revisions.filter((r) => !kartIds.has(r.kartId))
+        db.variants = db.variants.filter((v) => !kartIds.has(v.kartId))
+        db.notes = db.notes.filter((n) => !kartIds.has(n.kartId))
+        db.service = db.service.filter((s) => !kartIds.has(s.kartId))
+        db.fields = db.fields.filter((f) => f.teamId !== teamId)
+      })
     },
 
     async uploadTeamIcon(_teamId, file) {
@@ -461,6 +505,49 @@ export function createDemoBackend(): Backend {
     async deleteSetupField(fieldId) {
       await delay()
       mutate((db) => (db.fields = db.fields.filter((f) => f.id !== fieldId)))
+    },
+
+    async listNotes(kartId) {
+      await delay()
+      const db = load()
+      return db.notes
+        .filter((n) => n.kartId === kartId)
+        .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
+        .map(({ authorId, ...n }) => ({ ...n, author: authorOf(db, authorId) }))
+    },
+
+    async saveNote(input) {
+      await delay()
+      mutate((db) => {
+        if (!db.notes.some((n) => n.id === input.id)) db.notes.push({ ...input, authorId: ME })
+      })
+    },
+
+    async deleteNote(noteId) {
+      await delay()
+      mutate((db) => (db.notes = db.notes.filter((n) => n.id !== noteId)))
+    },
+
+    async listService(kartId) {
+      await delay()
+      const db = load()
+      return db.service
+        .filter((s) => s.kartId === kartId)
+        .sort((a, b) => b.performedOn.localeCompare(a.performedOn) || b.createdAt.localeCompare(a.createdAt))
+        .map(({ authorId, createdAt: _c, ...s }) => ({ ...s, author: authorOf(db, authorId) }))
+    },
+
+    async saveService(input) {
+      await delay()
+      mutate((db) => {
+        if (!db.service.some((s) => s.id === input.id))
+          db.service.push({ ...input, authorId: ME, createdAt: new Date().toISOString() })
+      })
+    },
+
+    async deleteService(entryId) {
+      await delay()
+      mutate((db) => (db.service = db.service.filter((s) => s.id !== entryId)))
     },
   }
 }

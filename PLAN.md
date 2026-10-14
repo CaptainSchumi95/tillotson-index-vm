@@ -87,7 +87,7 @@ Predvolené roly: **manažér, šéfmechanik, mechanik, jazdec** (jazdec bez `se
 - Tlaky 4 pneumatík navrchu, prevod, karburátor, geometria, rozmery, vlastné položky
 - História revízií (kto/kedy/čo), varianty
 
-### Fáza 4 – Domov
+### Fáza 4 – Domov ✅
 - Aktuálny jazdec a motokára, aktívna udalosť, prehľad setupu a tlakov, stav checklistu
 - Poznámky jazdca, servisná knižka (oleje)
 

@@ -2,22 +2,27 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { CalendarPlus, ChevronDown, ChevronRight, ClipboardCheck, NotebookPen, Wrench } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
-import { Badge, Card, Section } from '@/components/ui/Card'
+import { Card, Section } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { KartPlate, TeamBadge } from '@/components/ui/Identity'
 import { ListGroup, ListRow, RowIcon } from '@/components/ui/ListRow'
 import { PressureGrid, useUnitPrefs } from '@/components/setup/SetupView'
-import { useCan, useCurrentKart, useCurrentTeam, useSetupRevisions } from '@/data/queries'
+import { useCan, useCurrentKart, useCurrentTeam, useNotes, useService, useSetupRevisions } from '@/data/queries'
+import { relativeDay } from '@/lib/time'
 import { unitLabel } from '@/data/setup-fields'
 import { useUi } from '@/state/ui'
 
 export function HomePage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { team } = useCurrentTeam()
   const { kart } = useCurrentKart()
   const can = useCan()
   const setContextOpen = useUi((s) => s.setContextOpen)
+  const notes = useNotes(kart?.id)
+  const service = useService(kart?.id)
+  const latestNote = notes.data?.[0]
+  const lastOil = service.data?.find((e) => e.kind === 'oil')
 
   if (!team) return null
 
@@ -60,7 +65,7 @@ export function HomePage() {
         </span>
       </button>
 
-      <div className="grid gap-8 lg:grid-cols-2 lg:gap-6">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-6">
         {/* Aktuálna udalosť */}
         <Section title={t('home.current')} className="lg:col-span-2">
           <Link to="/weekend" className="block rounded-[22px]">
@@ -98,8 +103,8 @@ export function HomePage() {
                 </RowIcon>
               }
               title={t('home.driverNotes')}
-              trailing={<Badge>{t('common.soon')}</Badge>}
-              chevron={false}
+              subtitle={latestNote ? `„${latestNote.text}“` : t('notes.empty')}
+              to="/notes"
             />
             <ListRow
               leading={
@@ -108,8 +113,10 @@ export function HomePage() {
                 </RowIcon>
               }
               title={t('home.serviceBook')}
-              trailing={<Badge>{t('common.soon')}</Badge>}
-              chevron={false}
+              subtitle={
+                lastOil ? t('service.lastOil', { when: relativeDay(lastOil.performedOn, i18n.language) }) : t('service.lastOilNever')
+              }
+              to="/service"
             />
           </ListGroup>
         </Section>

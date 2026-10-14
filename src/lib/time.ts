@@ -16,3 +16,21 @@ export function dateTime(iso: string, locale: string): string {
     new Date(iso),
   )
 }
+
+/** „dnes“, „včera“, „pred 5 dňami“ pre dátum RRRR-MM-DD. */
+export function relativeDay(date: string, locale: string): string {
+  const [y, m, d] = date.split('-').map(Number)
+  const then = new Date(y, m - 1, d)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const days = Math.round((then.getTime() - today.getTime()) / 86_400_000)
+  if (Math.abs(days) > 60)
+    return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' }).format(then)
+  return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(days, 'day')
+}
+
+/** Dnešný dátum RRRR-MM-DD v miestnom čase. */
+export function todayIso(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}

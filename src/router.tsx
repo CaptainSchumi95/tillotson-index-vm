@@ -11,7 +11,9 @@ import { AboutPage } from '@/pages/AboutPage'
 import { CreateTeamPage } from '@/pages/CreateTeamPage'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
+import { NotesPage } from '@/pages/NotesPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
+import { ServicePage } from '@/pages/ServicePage'
 import { RoleEditorPage } from '@/pages/RoleEditorPage'
 import { RolesPage } from '@/pages/RolesPage'
 import { TracksPage, WeekendPage } from '@/pages/PlaceholderPages'
@@ -101,6 +103,8 @@ const routeTree = rootRoute.addChildren([
   privacyRoute,
   shellRoute.addChildren([
     page('/home', HomePage),
+    page('/notes', NotesPage),
+    page('/service', ServicePage),
     page('/weekend', WeekendPage),
     page('/setup', SetupPage),
     page('/setup/edit', SetupEditPage),

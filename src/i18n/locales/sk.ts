@@ -211,6 +211,40 @@ const sk = {
     justNow: 'práve teraz',
   },
 
+  notes: {
+    title: 'Poznámky jazdca',
+    placeholder: 'Ako sa motokára jazdila? Čo si jazdec všimol?',
+    add: 'Pridať poznámku',
+    empty: 'Zatiaľ žiadne poznámky',
+    emptyHint: 'Sem jazdec alebo mechanik zapíše, čo si všimol na trati – nech sa to po víkende nestratí.',
+    delete: 'Zmazať poznámku',
+    deleteConfirm: 'Poznámka sa nenávratne zmaže.',
+    readOnly: 'Poznámky môžeš iba čítať.',
+  },
+
+  service: {
+    title: 'Servisná knižka',
+    add: 'Zapísať servis',
+    kind: 'Čo sa robilo',
+    date: 'Kedy',
+    note: 'Poznámka',
+    notePlaceholder: 'napr. značka oleja, množstvo',
+    empty: 'Zatiaľ žiadne záznamy',
+    emptyHint: 'Zapisuj výmeny oleja a ďalší servis, nech vieš, kedy je čas na ďalší.',
+    lastOil: 'Olej vymenený {{when}}',
+    lastOilNever: 'Výmena oleja zatiaľ nezapísaná',
+    delete: 'Zmazať záznam',
+    deleteConfirm: 'Servisný záznam sa nenávratne zmaže.',
+    kinds: {
+      oil: 'Výmena oleja',
+      chain: 'Reťaz',
+      spark_plug: 'Sviečka',
+      air_filter: 'Vzduchový filter',
+      clutch: 'Spojka',
+      other: 'Iné',
+    },
+  },
+
   tracks: {
     title: 'Trate',
     emptyTitle: 'Knižnica tratí',
@@ -238,6 +272,11 @@ const sk = {
     switchTeam: 'Prepnúť tím',
     app: 'Aplikácia',
     noKarts: 'Zatiaľ žiadne motokáry',
+    deleteTeam: 'Odstrániť tím',
+    deleteTeamBody:
+      'Nenávratne sa zmažú všetky motokáry, setupy, história, poznámky, servis aj členstvá. Členovia o tím prídu. Pre potvrdenie napíš názov tímu.',
+    deleteTeamField: 'Názov tímu',
+    dangerZone: 'Nebezpečná zóna',
     removeKart: 'Odstrániť motokáru',
     removeKartConfirm: 'Motokára {{number}} zmizne zo zoznamu. Jej história zostane uložená.',
   },

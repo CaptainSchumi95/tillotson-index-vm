@@ -23,7 +23,7 @@ export function RolePicker({
   const { t } = useTranslation()
   const roleName = useRoleName()
   return (
-    <div role="radiogroup" className="grid gap-2 sm:grid-cols-2">
+    <div role="radiogroup" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {roles.map((r) => {
         const active = r.id === value
         return (
