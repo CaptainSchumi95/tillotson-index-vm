@@ -162,3 +162,65 @@ export interface ServiceEntry {
 }
 
 export type ServiceEntryInput = Pick<ServiceEntry, 'id' | 'kartId' | 'kind' | 'performedOn' | 'note'>
+
+// ───────────── Udalosti, harmonogram, checklist ─────────────
+
+export type EventKind = 'race' | 'test'
+
+export interface TeamEvent {
+  id: string
+  kind: EventKind
+  name: string
+  /** RRRR-MM-DD */
+  dateFrom: string
+  dateTo: string
+  trackName: string
+  notes: string
+  /** Motokáry udalosti a ich aktuálne poradie jazdy (checklist Pred/Po jazde). */
+  karts: { kartId: string; round: number }[]
+}
+
+export interface EventInput {
+  id?: string
+  kind: EventKind
+  name: string
+  dateFrom: string
+  dateTo: string
+  trackName: string
+  notes: string
+  kartIds: string[]
+}
+
+export interface ScheduleItem {
+  id: string
+  eventId: string
+  day: string
+  /** HH:MM alebo null */
+  time: string | null
+  title: string
+}
+
+export type ChecklistPhase = 'prep' | 'pre_run' | 'post_run'
+
+export interface ChecklistItem {
+  id: string
+  phase: ChecklistPhase
+  text: string
+  sortOrder: number
+}
+
+export interface ChecklistCheck {
+  itemId: string
+  round: number
+  doneBy: Author
+  doneAt: string
+  pending?: boolean
+}
+
+export interface CheckInput {
+  eventId: string
+  kartId: string
+  itemId: string
+  round: number
+  done: boolean
+}

@@ -34,3 +34,37 @@ export function todayIso(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
+
+function parseDay(date: string) {
+  const [y, m, d] = date.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+/** „14. – 15. okt.“ alebo „14. okt.“ (jeden deň). */
+export function dateRange(from: string, to: string, locale: string): string {
+  const f = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' })
+  return from === to ? f.format(parseDay(from)) : f.formatRange(parseDay(from), parseDay(to))
+}
+
+/** „sobota 14. októbra“ – nadpis dňa v harmonograme. */
+export function weekdayDate(date: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(parseDay(date))
+}
+
+/** Všetky dni od–do (vrátane). */
+export function daysBetween(from: string, to: string): string[] {
+  const out: string[] = []
+  const d = parseDay(from)
+  const end = parseDay(to)
+  while (d <= end && out.length < 31) {
+    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
+    d.setDate(d.getDate() + 1)
+  }
+  return out
+}
+
+/** Aktuálny čas HH:MM. */
+export function nowTime(): string {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}

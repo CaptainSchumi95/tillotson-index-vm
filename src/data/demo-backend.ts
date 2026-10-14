@@ -6,7 +6,10 @@ import { blobToDataUrl } from '@/lib/image'
 import type { AuthUser, Backend } from './backend'
 import {
   PERMISSIONS,
+  type ChecklistItem,
   type CustomSetupField,
+  type ScheduleItem,
+  type TeamEvent,
   type Kart,
   type KartNoteInput,
   type ServiceEntryInput,
@@ -61,6 +64,10 @@ interface DemoVariant {
 }
 
 interface DemoDb {
+  events: (TeamEvent & { teamId: string })[]
+  schedule: ScheduleItem[]
+  checklist: (ChecklistItem & { teamId: string })[]
+  checks: { eventId: string; kartId: string; itemId: string; round: number; doneBy: string; doneAt: string }[]
   notes: (KartNoteInput & { authorId: string })[]
   service: (ServiceEntryInput & { authorId: string; createdAt: string })[]
   revisions: DemoRevision[]
@@ -120,6 +127,68 @@ function demoSetup(): Pick<DemoDb, 'revisions' | 'variants' | 'fields'> {
   }
 }
 
+const DEFAULT_CHECKLIST: [ChecklistItem['phase'], string][] = [
+  ['prep', 'Benzín a olej (zmes) pripravené'],
+  ['prep', 'Reťaz skontrolovaná a namazaná'],
+  ['prep', 'Skrutky kolies a náprav dotiahnuté'],
+  ['prep', 'Brzdy skontrolované'],
+  ['prep', 'Náhradné pneumatiky a ráfiky'],
+  ['prep', 'Transpondér nabitý'],
+  ['prep', 'Výstroj jazdca (prilba, kombinéza, rukavice)'],
+  ['pre_run', 'Tlaky v pneumatikách'],
+  ['pre_run', 'Palivo v nádrži'],
+  ['pre_run', 'Napnutie reťaze'],
+  ['pre_run', 'Transpondér na mieste'],
+  ['pre_run', 'Jazdec pripravený'],
+  ['post_run', 'Tlaky za tepla'],
+  ['post_run', 'Spätná väzba od jazdca'],
+  ['post_run', 'Kontrola reťaze a bŕzd'],
+  ['post_run', 'Kontrola poškodení'],
+]
+
+/** Rovnaký predvolený checklist ako seed_checklist() v databáze. */
+function defaultChecklist(teamId: string): DemoDb['checklist'] {
+  return DEFAULT_CHECKLIST.map(([phase, text], i) => ({ id: teamId + '-cl-' + i, teamId, phase, text, sortOrder: (i + 1) * 10 }))
+}
+
+/** Dátum RRRR-MM-DD posunutý o dni od dneška. */
+function dayOffset(offset: number) {
+  const d = new Date(Date.now() + offset * 86_400_000)
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+}
+
+/** Vzorové udalosti: práve prebiehajúce preteky (95, 51) a minulý tréning (73). */
+function demoEvents(): Pick<DemoDb, 'events' | 'schedule' | 'checklist' | 'checks'> {
+  const day = dayOffset
+  const teamId = 'team-demo'
+  const checklist = defaultChecklist(teamId)
+  return {
+    events: [
+      {
+        id: 'ev-race', teamId, kind: 'race', name: '3. kolo seriálu T4', dateFrom: day(0), dateTo: day(1),
+        trackName: 'Slovakia Ring', notes: 'Depo č. 14. Technická prebierka do 8:30, transpondéry vyzdvihnúť v kancelárii.',
+        karts: [{ kartId: 'kart-95', round: 1 }, { kartId: 'kart-51', round: 1 }],
+      },
+      {
+        id: 'ev-test', teamId, kind: 'test', name: 'Tréning – nastavenie prevodu', dateFrom: day(-7), dateTo: day(-7),
+        trackName: 'Slovakia Ring', notes: '', karts: [{ kartId: 'kart-73', round: 1 }],
+      },
+    ],
+    schedule: [
+      { id: 'sc-1', eventId: 'ev-race', day: day(0), time: '08:00', title: 'Technická prebierka' },
+      { id: 'sc-2', eventId: 'ev-race', day: day(0), time: '09:30', title: 'Voľný tréning 1' },
+      { id: 'sc-3', eventId: 'ev-race', day: day(0), time: '11:40', title: 'Voľný tréning 2' },
+      { id: 'sc-4', eventId: 'ev-race', day: day(0), time: '14:15', title: 'Kvalifikácia' },
+      { id: 'sc-5', eventId: 'ev-race', day: day(1), time: '10:00', title: 'Rozjazd' },
+      { id: 'sc-6', eventId: 'ev-race', day: day(1), time: '13:30', title: 'Finále' },
+    ],
+    checklist,
+    checks: checklist.slice(0, 4).map((c) => ({
+      eventId: 'ev-race', kartId: 'kart-95', itemId: c.id, round: 0, doneBy: 'p-peter', doneAt: new Date().toISOString(),
+    })),
+  }
+}
+
 /** Vzorové poznámky jazdca a servis motokáry 95. */
 function demoNotesService(): Pick<DemoDb, 'notes' | 'service'> {
   const day = 24 * 60 * 60 * 1000
@@ -166,6 +235,7 @@ function seed(): DemoDb {
     invitations: [],
     ...demoSetup(),
     ...demoNotesService(),
+    ...demoEvents(),
     karts: [
       { id: 'kart-95', teamId, number: '95', driverName: 'Adam' },
       { id: 'kart-51', teamId, number: '51', driverName: 'Ema' },
@@ -177,7 +247,7 @@ function seed(): DemoDb {
 function load(): DemoDb {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return { ...demoSetup(), ...demoNotesService(), ...(JSON.parse(raw) as DemoDb) }
+    if (raw) return { ...demoSetup(), ...demoNotesService(), ...demoEvents(), ...(JSON.parse(raw) as DemoDb) }
   } catch {
     /* poškodené dáta – začneme odznova */
   }
@@ -282,6 +352,7 @@ export function createDemoBackend(): Backend {
       mutate((db) => {
         db.teams.push({ id: teamId, name, color, iconUrl: null })
         db.roles.push(...defaultRoles(teamId))
+        db.checklist.push(...defaultChecklist(teamId))
         db.members.push({ id: uid(), teamId, profile: db.profile, roleId: `${teamId}-manager`, kartIds: [] })
       })
       return teamId
@@ -306,6 +377,11 @@ export function createDemoBackend(): Backend {
         db.notes = db.notes.filter((n) => !kartIds.has(n.kartId))
         db.service = db.service.filter((s) => !kartIds.has(s.kartId))
         db.fields = db.fields.filter((f) => f.teamId !== teamId)
+        const eventIds = new Set(db.events.filter((e) => e.teamId === teamId).map((e) => e.id))
+        db.events = db.events.filter((e) => e.teamId !== teamId)
+        db.schedule = db.schedule.filter((s) => !eventIds.has(s.eventId))
+        db.checks = db.checks.filter((c) => !eventIds.has(c.eventId))
+        db.checklist = db.checklist.filter((c) => c.teamId !== teamId)
       })
     },
 
@@ -548,6 +624,115 @@ export function createDemoBackend(): Backend {
     async deleteService(entryId) {
       await delay()
       mutate((db) => (db.service = db.service.filter((s) => s.id !== entryId)))
+    },
+
+    async listEvents(teamId) {
+      await delay()
+      return load()
+        .events.filter((e) => e.teamId === teamId)
+        .sort((a, b) => b.dateFrom.localeCompare(a.dateFrom))
+        .map(({ teamId: _t, ...e }) => e)
+    },
+
+    async saveEvent(teamId, input) {
+      await delay()
+      return mutate((db) => {
+        const { kartIds, id, ...fields } = input
+        const existing = id ? db.events.find((e) => e.id === id) : undefined
+        if (existing) {
+          const rounds = new Map(existing.karts.map((k) => [k.kartId, k.round]))
+          Object.assign(existing, fields, { karts: kartIds.map((k) => ({ kartId: k, round: rounds.get(k) ?? 1 })) })
+          return existing.id
+        }
+        const newId = uid()
+        db.events.push({ ...fields, id: newId, teamId, karts: kartIds.map((k) => ({ kartId: k, round: 1 })) })
+        return newId
+      })
+    },
+
+    async deleteEvent(eventId) {
+      await delay()
+      mutate((db) => {
+        db.events = db.events.filter((e) => e.id !== eventId)
+        db.schedule = db.schedule.filter((s) => s.eventId !== eventId)
+        db.checks = db.checks.filter((c) => c.eventId !== eventId)
+      })
+    },
+
+    async listSchedule(eventId) {
+      await delay()
+      return load()
+        .schedule.filter((s) => s.eventId === eventId)
+        .sort((a, b) => a.day.localeCompare(b.day) || (a.time ?? '').localeCompare(b.time ?? ''))
+    },
+
+    async saveScheduleItem(input) {
+      await delay()
+      mutate((db) => {
+        const existing = input.id ? db.schedule.find((s) => s.id === input.id) : undefined
+        if (existing) Object.assign(existing, input)
+        else db.schedule.push({ ...input, id: uid() })
+      })
+    },
+
+    async deleteScheduleItem(itemId) {
+      await delay()
+      mutate((db) => (db.schedule = db.schedule.filter((s) => s.id !== itemId)))
+    },
+
+    async listChecklistItems(teamId) {
+      await delay()
+      return load()
+        .checklist.filter((c) => c.teamId === teamId)
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map(({ teamId: _t, ...c }) => c)
+    },
+
+    async saveChecklistItem(teamId, input) {
+      await delay()
+      mutate((db) => {
+        const existing = input.id ? db.checklist.find((c) => c.id === input.id) : undefined
+        if (existing) Object.assign(existing, input)
+        else db.checklist.push({ ...input, id: uid(), teamId })
+      })
+    },
+
+    async deleteChecklistItem(itemId) {
+      await delay()
+      mutate((db) => {
+        db.checklist = db.checklist.filter((c) => c.id !== itemId)
+        db.checks = db.checks.filter((c) => c.itemId !== itemId)
+      })
+    },
+
+    async listChecks(eventId, kartId) {
+      await delay()
+      const db = load()
+      return db.checks
+        .filter((c) => c.eventId === eventId && c.kartId === kartId)
+        .map((c) => ({ itemId: c.itemId, round: c.round, doneAt: c.doneAt, doneBy: authorOf(db, c.doneBy) }))
+    },
+
+    async setCheck(input) {
+      await delay()
+      mutate((db) => {
+        const same = (c: DemoDb['checks'][number]) =>
+          c.eventId === input.eventId && c.kartId === input.kartId && c.itemId === input.itemId && c.round === input.round
+        db.checks = db.checks.filter((c) => !same(c))
+        if (input.done)
+          db.checks.push({
+            eventId: input.eventId, kartId: input.kartId, itemId: input.itemId, round: input.round,
+            doneBy: ME, doneAt: new Date().toISOString(),
+          })
+      })
+    },
+
+    async setRound(eventId, kartId, round) {
+      await delay()
+      mutate((db) => {
+        const k = db.events.find((e) => e.id === eventId)?.karts.find((x) => x.kartId === kartId)
+        if (k) k.round = round
+      })
     },
   }
 }

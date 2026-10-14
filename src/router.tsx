@@ -16,7 +16,11 @@ import { PrivacyPage } from '@/pages/PrivacyPage'
 import { ServicePage } from '@/pages/ServicePage'
 import { RoleEditorPage } from '@/pages/RoleEditorPage'
 import { RolesPage } from '@/pages/RolesPage'
-import { TracksPage, WeekendPage } from '@/pages/PlaceholderPages'
+import { TracksPage } from '@/pages/PlaceholderPages'
+import { ChecklistTemplatePage } from '@/pages/ChecklistTemplatePage'
+import { EventEditPage } from '@/pages/EventEditPage'
+import { EventPage } from '@/pages/EventPage'
+import { WeekendPage } from '@/pages/WeekendPage'
 import { SetupEditPage, VariantEditPage } from '@/pages/SetupEditPage'
 import { SetupFieldsPage } from '@/pages/SetupFieldsPage'
 import { SetupPage } from '@/pages/SetupPage'
@@ -106,6 +110,16 @@ const routeTree = rootRoute.addChildren([
     page('/notes', NotesPage),
     page('/service', ServicePage),
     page('/weekend', WeekendPage),
+    page('/weekend/new', EventEditPage),
+    createRoute({
+      getParentRoute: () => shellRoute,
+      path: '/weekend/$eventId',
+      component: EventPage,
+      validateSearch: (s: Record<string, unknown>): { tab?: 'checklist' } =>
+        s.tab === 'checklist' ? { tab: 'checklist' } : {},
+    }),
+    page('/weekend/$eventId/edit', EventEditPage),
+    page('/team/checklist', ChecklistTemplatePage),
     page('/setup', SetupPage),
     page('/setup/edit', SetupEditPage),
     page('/setup/fields', SetupFieldsPage),

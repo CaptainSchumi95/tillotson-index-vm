@@ -8,7 +8,8 @@ import { del, get, set } from 'idb-keyval'
 import { AuthProvider } from '@/auth/AuthProvider'
 import { backend } from '@/data'
 import { qk, SAVE_NOTE_KEY, SAVE_SERVICE_KEY, SAVE_SETUP_KEY } from '@/data/queries'
-import type { KartNoteInput, ServiceEntryInput, SetupRevisionInput } from '@/data/types'
+import { ek, SET_ROUND_KEY, TOGGLE_CHECK_KEY, type RoundInput } from '@/data/events'
+import type { CheckInput, KartNoteInput, ServiceEntryInput, SetupRevisionInput } from '@/data/types'
 import { QUERY_CACHE_KEY, QUERY_CACHE_SCHEMA } from '@/lib/cache'
 import { router } from '@/router'
 import '@/i18n'
@@ -41,6 +42,20 @@ queryClient.setMutationDefaults(SAVE_NOTE_KEY, {
   ...offline,
   mutationFn: (input: KartNoteInput) => backend.saveNote(input),
   onSettled: (_d, _e, input: KartNoteInput) => queryClient.invalidateQueries({ queryKey: qk.notes(input.kartId) }),
+})
+// Checklist: odškrtnutia sa odošlú v poradí, v akom ich mechanik urobil (scope).
+queryClient.setMutationDefaults(TOGGLE_CHECK_KEY, {
+  ...offline,
+  scope: { id: 'checklist' },
+  mutationFn: (input: CheckInput) => backend.setCheck(input),
+  onSettled: (_d, _e, input: CheckInput) =>
+    queryClient.invalidateQueries({ queryKey: ek.checks(input.eventId, input.kartId) }),
+})
+queryClient.setMutationDefaults(SET_ROUND_KEY, {
+  ...offline,
+  scope: { id: 'checklist' },
+  mutationFn: (input: RoundInput) => backend.setRound(input.eventId, input.kartId, input.round),
+  onSettled: (_d, _e, input: RoundInput) => queryClient.invalidateQueries({ queryKey: ek.events(input.teamId) }),
 })
 queryClient.setMutationDefaults(SAVE_SERVICE_KEY, {
   ...offline,

@@ -1,5 +1,9 @@
 import type {
+  ChecklistCheck,
+  ChecklistItem,
+  CheckInput,
   CustomSetupField,
+  EventInput,
   InviteResult,
   Invitation,
   KartNote,
@@ -13,11 +17,13 @@ import type {
   Profile,
   ProfilePatch,
   RoleInput,
+  ScheduleItem,
   SetupRevision,
   SetupRevisionInput,
   SetupVariant,
   SetupValues,
   TeamPatch,
+  TeamEvent,
   TeamRole,
 } from './types'
 
@@ -86,4 +92,22 @@ export interface Backend {
   /** Idempotentné (id generuje aplikácia) – bezpečné pri offline uložení. */
   saveService(input: ServiceEntryInput): Promise<void>
   deleteService(entryId: string): Promise<void>
+
+  listEvents(teamId: string): Promise<TeamEvent[]>
+  saveEvent(teamId: string, input: EventInput): Promise<string>
+  deleteEvent(eventId: string): Promise<void>
+
+  listSchedule(eventId: string): Promise<ScheduleItem[]>
+  saveScheduleItem(input: Omit<ScheduleItem, 'id'> & { id?: string }): Promise<void>
+  deleteScheduleItem(itemId: string): Promise<void>
+
+  listChecklistItems(teamId: string): Promise<ChecklistItem[]>
+  saveChecklistItem(teamId: string, input: Omit<ChecklistItem, 'id'> & { id?: string }): Promise<void>
+  deleteChecklistItem(itemId: string): Promise<void>
+
+  listChecks(eventId: string, kartId: string): Promise<ChecklistCheck[]>
+  /** Idempotentné odškrtnutie / zrušenie – bezpečné pri offline fronte. */
+  setCheck(input: CheckInput): Promise<void>
+  /** Posun na ďalšiu jazdu (vynuluje Pred/Po jazde). */
+  setRound(eventId: string, kartId: string, round: number): Promise<void>
 }

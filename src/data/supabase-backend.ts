@@ -3,7 +3,11 @@ import { normalizeUnitPrefs } from '@/lib/units'
 import type { AuthUser, Backend } from './backend'
 import {
   KNOWN_ERRORS,
+  type ChecklistCheck,
+  type ChecklistItem,
   type CustomSetupField,
+  type ScheduleItem,
+  type TeamEvent,
   type Invitation,
   type KartNote,
   type ServiceEntry,
@@ -411,6 +415,120 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
 
     async deleteService(entryId) {
       must(await sb.from('service_log').delete().eq('id', entryId))
+    },
+
+    async listEvents(teamId) {
+      const rows = must(
+        await sb
+          .from('events')
+          .select('id, kind, name, date_from, date_to, track_name, notes, event_karts(kart_id, round)')
+          .eq('team_id', teamId)
+          .order('date_from', { ascending: false })
+          .limit(200),
+      ) as Row[]
+      return rows.map(
+        (r): TeamEvent => ({
+          id: r.id,
+          kind: r.kind,
+          name: r.name,
+          dateFrom: r.date_from,
+          dateTo: r.date_to,
+          trackName: r.track_name,
+          notes: r.notes,
+          karts: (r.event_karts as Row[]).map((k) => ({ kartId: k.kart_id, round: k.round })),
+        }),
+      )
+    },
+
+    async saveEvent(teamId, input) {
+      return must(
+        await sb.rpc('save_event', {
+          p_id: input.id ?? null,
+          p_team: teamId,
+          p_kind: input.kind,
+          p_name: input.name,
+          p_from: input.dateFrom,
+          p_to: input.dateTo,
+          p_track: input.trackName,
+          p_notes: input.notes,
+          p_karts: input.kartIds,
+        }),
+      ) as string
+    },
+
+    async deleteEvent(eventId) {
+      must(await sb.from('events').delete().eq('id', eventId))
+    },
+
+    async listSchedule(eventId) {
+      const rows = must(
+        await sb
+          .from('schedule_items')
+          .select('id, event_id, day, time, title')
+          .eq('event_id', eventId)
+          .order('day')
+          .order('time', { nullsFirst: true }),
+      ) as Row[]
+      return rows.map(
+        (r): ScheduleItem => ({ id: r.id, eventId: r.event_id, day: r.day, time: r.time ? String(r.time).slice(0, 5) : null, title: r.title }),
+      )
+    },
+
+    async saveScheduleItem(input) {
+      const row = { event_id: input.eventId, day: input.day, time: input.time, title: input.title }
+      if (input.id) must(await sb.from('schedule_items').update(row).eq('id', input.id))
+      else must(await sb.from('schedule_items').insert(row))
+    },
+
+    async deleteScheduleItem(itemId) {
+      must(await sb.from('schedule_items').delete().eq('id', itemId))
+    },
+
+    async listChecklistItems(teamId) {
+      const rows = must(
+        await sb.from('checklist_items').select('id, phase, text, sort_order').eq('team_id', teamId).order('sort_order').order('created_at'),
+      ) as Row[]
+      return rows.map((r): ChecklistItem => ({ id: r.id, phase: r.phase, text: r.text, sortOrder: r.sort_order }))
+    },
+
+    async saveChecklistItem(teamId, input) {
+      const row = { team_id: teamId, phase: input.phase, text: input.text, sort_order: input.sortOrder }
+      if (input.id) must(await sb.from('checklist_items').update(row).eq('id', input.id))
+      else must(await sb.from('checklist_items').insert(row))
+    },
+
+    async deleteChecklistItem(itemId) {
+      must(await sb.from('checklist_items').delete().eq('id', itemId))
+    },
+
+    async listChecks(eventId, kartId) {
+      const rows = must(
+        await sb
+          .from('checklist_checks')
+          .select('item_id, round, done_at, author:profiles(id, name, avatar_url)')
+          .eq('event_id', eventId)
+          .eq('kart_id', kartId),
+      ) as Row[]
+      return rows.map(
+        (r): ChecklistCheck => ({ itemId: r.item_id, round: r.round, doneAt: r.done_at, doneBy: toAuthor(r.author) }),
+      )
+    },
+
+    async setCheck(input) {
+      const key = { event_id: input.eventId, kart_id: input.kartId, item_id: input.itemId, round: input.round }
+      if (input.done) {
+        must(
+          await sb
+            .from('checklist_checks')
+            .upsert({ ...key, done_by: await uid() }, { onConflict: 'event_id,kart_id,item_id,round', ignoreDuplicates: true }),
+        )
+      } else {
+        must(await sb.from('checklist_checks').delete().match(key))
+      }
+    },
+
+    async setRound(eventId, kartId, round) {
+      must(await sb.from('event_karts').update({ round }).eq('event_id', eventId).eq('kart_id', kartId))
     },
   }
 }

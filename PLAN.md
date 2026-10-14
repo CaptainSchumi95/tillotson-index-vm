@@ -91,7 +91,7 @@ Predvolené roly: **manažér, šéfmechanik, mechanik, jazdec** (jazdec bez `se
 - Aktuálny jazdec a motokára, aktívna udalosť, prehľad setupu a tlakov, stav checklistu
 - Poznámky jazdca, servisná knižka (oleje)
 
-### Fáza 5 – Víkend
+### Fáza 5 – Víkend (časť 1 ✅: udalosti, harmonogram, checklisty · časť 2: jazdy a porovnanie)
 - Preteky / test, dátum alebo rozsah, trať, výber motokár
 - Harmonogram po dňoch (pri teste voliteľný), checklisty (príprava / pred jazdou / po jazde), poznámky
 - Záznam jazdy a porovnanie s predchádzajúcou
