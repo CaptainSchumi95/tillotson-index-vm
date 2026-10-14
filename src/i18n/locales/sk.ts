@@ -180,6 +180,40 @@ const sk = {
     developedBy: 'Aplikáciu vyvinul',
   },
 
+  privacy: {
+    title: 'Ochrana súkromia',
+    link: 'Ochrana súkromia',
+    updated: 'Platné od 14. októbra 2026',
+    intro:
+      'Tillotson Index je tímová aplikácia pre motokárové pretekanie, ktorú vyvinul Vilim Motorsport. Tu je jednoducho opísané, aké údaje aplikácia používa a prečo.',
+    sections: [
+      {
+        title: 'Aké údaje používame',
+        body: 'Pri prihlásení cez Google získame tvoje meno, e-mailovú adresu a profilovú fotku. Ďalej ukladáme údaje, ktoré do aplikácie zadáš ty alebo tvoj tím: tímy, motokáry, nastavenia (setup), udalosti, záznamy jázd, checklisty a poznámky.',
+      },
+      {
+        title: 'Na čo ich používame',
+        body: 'Iba na to, aby aplikácia fungovala: na prihlásenie, na zobrazenie tvojho mena a fotky členom tvojho tímu a na uloženie práce tímu. Údaje nepredávame, nepoužívame na reklamu a neposielame tretím stranám na marketing.',
+      },
+      {
+        title: 'Kto ich vidí',
+        body: 'Tvoje meno, e-mail a fotku vidia iba členovia tímov, do ktorých patríš. Údaje tímu vidia iba jeho členovia, a to podľa oprávnení svojej roly, ktoré nastavuje manažér tímu.',
+      },
+      {
+        title: 'Kde sú uložené',
+        body: 'Údaje sú uložené v databáze služby Supabase a aplikácia beží na službe Vercel. Aby aplikácia fungovala aj pri slabom signále na trati, časť údajov sa ukladá aj priamo v tvojom zariadení.',
+      },
+      {
+        title: 'Údaje z Google účtu',
+        body: 'Od Googlu žiadame iba základné údaje profilu (meno, e-mail, fotka). Nemáme prístup k tvojim e-mailom, súborom ani iným službám Google. Používanie údajov z Google API sa riadi pravidlami Google API Services User Data Policy vrátane požiadaviek na obmedzené použitie (Limited Use).',
+      },
+      {
+        title: 'Vymazanie údajov',
+        body: 'Z tímu ťa môže kedykoľvek odstrániť manažér tímu. O úplné vymazanie účtu a všetkých tvojich údajov môžeš požiadať manažéra svojho tímu alebo priamo Vilim Motorsport.',
+      },
+    ],
+  },
+
   pwa: {
     update: 'Je pripravená nová verzia.',
     reload: 'Aktualizovať',

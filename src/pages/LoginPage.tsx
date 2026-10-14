@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/components/ui/Button'
@@ -70,6 +71,11 @@ export function LoginPage() {
           <p className="text-center text-[0.85rem] leading-relaxed text-white/60">
             {isDemo ? t('auth.demoNote') : t('auth.inviteHint')}
           </p>
+        </div>
+        <div className="mt-8 text-center">
+          <Link to="/privacy" className="text-[0.85rem] text-white/60 underline-offset-4 hover:text-white hover:underline">
+            {t('privacy.link')}
+          </Link>
         </div>
       </div>
     </div>

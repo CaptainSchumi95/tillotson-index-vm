@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { createRootRoute, createRoute, createRouter, Navigate, Outlet } from '@tanstack/react-router'
+import { createRootRoute, createRoute, createRouter, Navigate, Outlet, useRouterState } from '@tanstack/react-router'
 import { useAuth } from '@/auth/AuthProvider'
 import { FullScreenLoader } from '@/components/ui/Spinner'
 import { useCurrentTeam, useProfile } from '@/data/queries'
@@ -10,6 +10,7 @@ import { AboutPage } from '@/pages/AboutPage'
 import { CreateTeamPage } from '@/pages/CreateTeamPage'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
+import { PrivacyPage } from '@/pages/PrivacyPage'
 import { SetupPage, TracksPage, WeekendPage } from '@/pages/PlaceholderPages'
 import { SelectPage } from '@/pages/SelectPage'
 import { SettingsPage } from '@/pages/SettingsPage'
@@ -41,6 +42,9 @@ function Appearance() {
 
 function Root() {
   const { state } = useAuth()
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  // Verejná stránka – dostupná aj bez prihlásenia (požiadavka Googlu).
+  if (pathname === '/privacy') return <PrivacyPage />
   if (state.status === 'loading') return <FullScreenLoader />
   if (state.status === 'signedOut') return <LoginPage />
   return (
@@ -74,6 +78,8 @@ const newTeamRoute = createRoute({
   component: () => <CreateTeamPage />,
 })
 
+const privacyRoute = createRoute({ getParentRoute: () => rootRoute, path: '/privacy', component: PrivacyPage })
+
 const selectRoute = createRoute({ getParentRoute: () => rootRoute, path: '/select', component: SelectPage })
 
 const shellRoute = createRoute({ getParentRoute: () => rootRoute, id: 'shell', component: AppShell })
@@ -86,6 +92,7 @@ const routeTree = rootRoute.addChildren([
   welcomeRoute,
   newTeamRoute,
   selectRoute,
+  privacyRoute,
   shellRoute.addChildren([
     page('/home', HomePage),
     page('/weekend', WeekendPage),

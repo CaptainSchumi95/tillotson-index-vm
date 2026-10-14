@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { TiWordmark, VilimWordmark } from '@/components/ui/Brand'
 import { Card } from '@/components/ui/Card'
+import { ListGroup, ListRow } from '@/components/ui/ListRow'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 export function AboutPage() {
@@ -24,6 +25,10 @@ export function AboutPage() {
           <span className="eyebrow">{t('about.developedBy')}</span>
           <VilimWordmark className="h-14 text-vilim" />
         </Card>
+
+        <ListGroup>
+          <ListRow title={t('privacy.title')} to="/privacy" />
+        </ListGroup>
       </div>
     </>
   )
