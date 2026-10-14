@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { createRootRoute, createRoute, createRouter, Navigate, Outlet, useRouterState } from '@tanstack/react-router'
 import { useAuth } from '@/auth/AuthProvider'
+import { CrashScreen } from '@/components/CrashScreen'
 import { FullScreenLoader } from '@/components/ui/Spinner'
 import { useCurrentTeam, useProfile } from '@/data/queries'
 import { setLanguage } from '@/i18n'
@@ -113,5 +114,6 @@ export const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
   defaultNotFoundComponent: () => <Navigate to="/" replace />,
+  defaultErrorComponent: ({ error }) => <CrashScreen error={error} />,
   scrollRestoration: true,
 })

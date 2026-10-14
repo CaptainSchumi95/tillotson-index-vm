@@ -44,7 +44,7 @@ export function MemberSheet({
   useEffect(() => {
     if (open && member) {
       setRoleId(member.role.id)
-      setKartIds(member.kartIds)
+      setKartIds(member.kartIds ?? [])
       update.reset()
       remove.reset()
     }

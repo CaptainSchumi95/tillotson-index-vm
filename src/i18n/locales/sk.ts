@@ -315,6 +315,12 @@ const sk = {
     offline: 'Si offline. Zmeny sa odošlú, keď sa pripojíš.',
   },
 
+  crash: {
+    title: 'Niečo sa pokazilo',
+    body: 'Aplikácia narazila na chybu. Väčšinou pomôže obnoviť uložené dáta – nič sa tým nestratí, všetko je bezpečne na serveri.',
+    reset: 'Obnoviť aplikáciu',
+  },
+
   phase: {
     soon: 'Pripravujeme',
   },

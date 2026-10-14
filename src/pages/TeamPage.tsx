@@ -51,8 +51,8 @@ export function TeamPage() {
   const me = members.data?.find((m) => m.profile.id === profile.data?.id)
   const multipleTeams = (teams.data?.length ?? 0) > 1
 
-  const kartNumbers = (ids: string[]) =>
-    ids
+  const kartNumbers = (ids: string[] | undefined) =>
+    (ids ?? [])
       .map((id) => karts.data?.find((k) => k.id === id)?.number)
       .filter(Boolean)
       .map((n) => `#${n}`)

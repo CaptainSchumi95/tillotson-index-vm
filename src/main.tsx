@@ -6,6 +6,7 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import { RouterProvider } from '@tanstack/react-router'
 import { del, get, set } from 'idb-keyval'
 import { AuthProvider } from '@/auth/AuthProvider'
+import { QUERY_CACHE_KEY, QUERY_CACHE_SCHEMA } from '@/lib/cache'
 import { router } from '@/router'
 import '@/i18n'
 import './index.css'
@@ -25,14 +26,14 @@ const queryClient = new QueryClient({
 
 const persister = createAsyncStoragePersister({
   storage: { getItem: get, setItem: set, removeItem: del },
-  key: 'ti-query-cache',
+  key: QUERY_CACHE_KEY,
 })
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <PersistQueryClientProvider
       client={queryClient}
-      persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24 * 7, buster: __APP_VERSION__ }}
+      persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24 * 7, buster: `${__APP_VERSION__}/${QUERY_CACHE_SCHEMA}` }}
     >
       <AuthProvider>
         <RouterProvider router={router} />
