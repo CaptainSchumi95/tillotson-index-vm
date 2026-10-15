@@ -2,7 +2,7 @@ import type { HTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
 export function Card({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('rounded-[22px] border border-line bg-surface shadow-card', className)} {...rest} />
+  return <div className={cn('rounded-[22px] border border-line bg-card shadow-card', className)} {...rest} />
 }
 
 /** Nadpis sekcie s voliteľnou akciou vpravo. */
@@ -35,7 +35,7 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
     <span
       className={cn(
         'inline-flex h-6 shrink-0 items-center rounded-full px-2.5 text-[0.72rem] font-semibold whitespace-nowrap',
-        tone === 'accent' ? 'bg-accent-soft text-accent-ink' : 'bg-sunken text-ink-2',
+        tone === 'accent' ? 'bg-accent-tonal text-accent-ink' : 'bg-sunken text-ink-2',
       )}
     >
       {children}

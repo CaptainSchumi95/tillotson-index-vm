@@ -21,7 +21,7 @@ export function Switch({
       onClick={() => onChange(!checked)}
       className={cn(
         'relative inline-flex h-[30px] w-[50px] shrink-0 items-center rounded-full transition-colors duration-200',
-        checked ? 'bg-accent' : 'bg-line-strong',
+        checked ? 'bg-accent-fill shadow-[0_4px_12px_-4px_var(--accent-glow)]' : 'bg-line-strong',
         disabled && 'opacity-45',
       )}
     >

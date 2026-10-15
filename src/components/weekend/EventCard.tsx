@@ -18,7 +18,7 @@ export function EventCard({ event, karts, muted }: { event: TeamEvent; karts: Ka
       to="/weekend/$eventId"
       params={{ eventId: event.id }}
       className={cn(
-        'group block rounded-[22px] border bg-surface p-4 shadow-card transition-colors hover:border-line-strong sm:p-5',
+        'group block rounded-[22px] border bg-card p-4 shadow-card card-lift sm:p-5',
         live ? 'border-accent shadow-[0_0_0_1px_var(--accent)]' : 'border-line',
         muted && 'opacity-75',
       )}
@@ -27,7 +27,7 @@ export function EventCard({ event, karts, muted }: { event: TeamEvent; karts: Ka
         <span
           className={cn(
             'grid size-12 shrink-0 place-items-center rounded-[14px]',
-            event.kind === 'race' ? 'bg-accent text-on-accent' : 'bg-sunken text-ink-2',
+            event.kind === 'race' ? 'bg-accent-fill text-on-accent' : 'bg-sunken text-ink-2',
           )}
         >
           {event.kind === 'race' ? <Flag className="size-6" /> : <Timer className="size-6" />}

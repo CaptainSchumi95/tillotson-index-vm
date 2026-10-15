@@ -188,7 +188,7 @@ export function MessageRow({
         <span
           className={cn(
             'pointer-events-none absolute top-1/2 left-1 grid size-8 -translate-y-1/2 place-items-center rounded-full transition-colors',
-            dx >= SWIPE_REPLY ? 'bg-accent text-on-accent' : 'bg-(--chat-field) text-ink-2',
+            dx >= SWIPE_REPLY ? 'bg-accent-fill text-on-accent' : 'bg-(--chat-field) text-ink-2',
           )}
           style={{
             opacity: Math.min(1, dx / SWIPE_REPLY),

@@ -6,10 +6,11 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'inverse'
 type Size = 'md' | 'lg' | 'sm'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-accent text-on-accent shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] hover:brightness-[1.06] active:brightness-95',
-  secondary: 'bg-surface text-ink border border-line-strong hover:bg-surface-2 active:bg-sunken',
+  primary:
+    'sheen bg-accent-fill text-on-accent shadow-[inset_0_1px_0_rgb(255_255_255/0.22),0_8px_20px_-10px_var(--accent-glow)] hover:shadow-[inset_0_1px_0_rgb(255_255_255/0.22),0_14px_28px_-10px_var(--accent-glow)] hover:brightness-[1.05] active:brightness-95',
+  secondary: 'bg-surface text-ink border border-line-strong shadow-card hover:bg-surface-2 hover:border-ink-3/45 active:bg-sunken',
   ghost: 'text-accent-ink hover:bg-accent-soft active:bg-accent-soft',
-  danger: 'bg-surface text-danger border border-line-strong hover:bg-surface-2',
+  danger: 'bg-surface text-danger border border-line-strong shadow-card hover:bg-surface-2 hover:border-danger/45',
   inverse: 'bg-white text-[#0c1424] hover:bg-white/90 active:bg-white/80',
 }
 
@@ -37,7 +38,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       disabled={disabled || loading}
       className={cn(
         'inline-flex select-none items-center justify-center font-semibold whitespace-nowrap',
-        'transition-[filter,background-color,transform,opacity] duration-150 active:scale-[0.985]',
+        'transition-[filter,background-color,border-color,box-shadow,transform,opacity] duration-200 ease-out-soft active:scale-[0.97]',
+        'pointer-fine:hover:-translate-y-px pointer-fine:active:translate-y-0',
         'disabled:opacity-45 disabled:active:scale-100',
         variants[variant],
         sizes[size],

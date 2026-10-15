@@ -67,7 +67,7 @@ export function SessionsTab({ eventId, kartId, canEdit }: { eventId: string; kar
                   search={{ kart: kartId }}
                   className="block rounded-[22px]"
                 >
-                  <Card className="flex items-center gap-4 p-4 transition-colors hover:border-line-strong sm:p-5">
+                  <Card className="card-lift flex items-center gap-4 p-4 sm:p-5">
                     <span className="display tnum grid size-11 shrink-0 place-items-center rounded-[13px] bg-sunken text-[1.05rem] text-ink-2">
                       {list.length - i}
                     </span>
@@ -83,7 +83,7 @@ export function SessionsTab({ eventId, kartId, canEdit }: { eventId: string; kar
                       </span>
                     </span>
                     <span className="flex shrink-0 flex-col items-end gap-1">
-                      <span className="display tnum text-[1.3rem]">{formatLapTime(s.bestLapMs, i18n.language)}</span>
+                      <span className="display tnum text-gradient text-[1.3rem]">{formatLapTime(s.bestLapMs, i18n.language)}</span>
                       {s.pending ? (
                         <Badge tone="accent">
                           <CloudUpload className="size-3.5" />

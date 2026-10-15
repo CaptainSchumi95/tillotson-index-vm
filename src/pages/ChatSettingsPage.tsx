@@ -44,7 +44,7 @@ function CheckRow({
       <span
         className={cn(
           'grid size-7 shrink-0 place-items-center rounded-[9px] border-2 transition-colors',
-          checked ? 'border-accent bg-accent text-on-accent' : 'border-line-strong',
+          checked ? 'border-accent bg-accent-fill text-on-accent' : 'border-line-strong',
         )}
       >
         {checked && <Check className="size-4" strokeWidth={3} />}

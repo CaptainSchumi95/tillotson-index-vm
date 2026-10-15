@@ -34,7 +34,7 @@ export function KartPicker({
               <span className="block truncate text-[1.05rem] font-semibold">{k.driverName || '—'}</span>
             </span>
             {active && (
-              <span className="absolute top-3.5 right-3.5 grid size-6 place-items-center rounded-full bg-accent text-on-accent">
+              <span className="absolute top-3.5 right-3.5 grid size-6 place-items-center rounded-full bg-accent-fill text-on-accent">
                 <Check className="size-3.5" strokeWidth={3} />
               </span>
             )}

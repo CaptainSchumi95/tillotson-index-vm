@@ -25,11 +25,16 @@ export function ListRow({ leading, title, subtitle, trailing, to, onClick, chevr
         {subtitle && <span className="block truncate text-[0.88rem] text-ink-3">{subtitle}</span>}
       </span>
       {trailing && <span className="flex shrink-0 items-center gap-2 text-ink-3">{trailing}</span>}
-      {(chevron ?? !!interactive) && <ChevronRight className="size-5 shrink-0 text-ink-3" strokeWidth={2} />}
+      {(chevron ?? !!interactive) && (
+        <ChevronRight
+          className="size-5 shrink-0 text-ink-3 transition-transform duration-200 ease-out-soft group-hover:translate-x-0.5 group-hover:text-ink-2"
+          strokeWidth={2}
+        />
+      )}
     </>
   )
   const cls = cn(
-    'flex min-h-[60px] w-full items-center gap-3.5 px-4 py-2.5 text-left',
+    'group flex min-h-[60px] w-full items-center gap-3.5 px-4 py-2.5 text-left',
     interactive && 'transition-colors hover:bg-surface-2 active:bg-sunken',
     disabled && 'opacity-55',
   )
@@ -53,7 +58,7 @@ export function ListGroup({ children, className }: { children: ReactNode; classN
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-[22px] border border-line bg-surface shadow-card divide-y divide-line',
+        'overflow-hidden rounded-[22px] border border-line bg-card shadow-card divide-y divide-line',
         className,
       )}
     >
@@ -67,7 +72,7 @@ export function RowIcon({ children, tone = 'neutral' }: { children: ReactNode; t
     <span
       className={cn(
         'grid size-10 place-items-center rounded-[12px]',
-        tone === 'accent' ? 'bg-accent-soft text-accent-ink' : 'bg-sunken text-ink-2',
+        tone === 'accent' ? 'bg-accent-tonal text-accent-ink' : 'bg-sunken text-ink-2',
       )}
     >
       {children}

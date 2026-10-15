@@ -32,7 +32,7 @@ export function PageHeader({
       <div className="flex items-end justify-between gap-4">
         <div className="min-w-0">
           {eyebrow && <div className="eyebrow mb-2">{eyebrow}</div>}
-          <h1 className="display text-[2rem] lg:text-[2.4rem]">{title}</h1>
+          <h1 className="display text-gradient pb-0.5 text-[2rem] lg:text-[2.4rem]">{title}</h1>
         </div>
         {action}
       </div>

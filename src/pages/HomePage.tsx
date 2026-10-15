@@ -64,7 +64,7 @@ export function HomePage() {
         <KartPlate number={kart.number} size="xl" />
         <span className="min-w-0 flex-1">
           <span className="eyebrow mb-2 block">{t('context.driver')}</span>
-          <span className="display block truncate text-[2rem] lg:text-[2.4rem]">{kart.driverName || '—'}</span>
+          <span className="display text-gradient block truncate pb-0.5 text-[2rem] lg:text-[2.4rem]">{kart.driverName || '—'}</span>
           <span className="mt-2.5 flex items-center gap-2 text-[0.92rem] text-ink-2">
             <TeamBadge name={team.name} color={team.color} iconUrl={team.iconUrl} size="sm" className="size-5! rounded-[6px]! text-[0.5rem]!" />
             <span className="truncate">{team.name}</span>
@@ -140,7 +140,7 @@ function PressuresCard({ kartId }: { kartId: string }) {
   return (
     <Section title={t('home.pressures')} action={<span className="eyebrow">{unit}</span>} className="flex flex-col">
       <Link to="/setup" className="block flex-1 rounded-[22px]">
-        <Card className="h-full p-3 transition-colors hover:border-line-strong">
+        <Card className="h-full p-3 card-lift">
           <PressureGrid values={current?.values ?? {}} />
         </Card>
       </Link>
@@ -156,7 +156,7 @@ function CurrentEventCard({ event }: { event: TeamEvent | null }) {
   if (!event)
     return (
       <Link to="/weekend" className="block rounded-[22px]">
-        <Card className="flex items-center gap-4 p-4 transition-colors hover:border-line-strong sm:p-5">
+        <Card className="flex items-center gap-4 p-4 card-lift sm:p-5">
           <RowIcon tone="accent">
             <CalendarPlus className="size-5" />
           </RowIcon>
@@ -178,7 +178,7 @@ function CurrentEventCard({ event }: { event: TeamEvent | null }) {
     <Link to="/weekend/$eventId" params={{ eventId: event.id }} className="block rounded-[22px]">
       <Card
         className={cn(
-          'overflow-hidden transition-colors hover:border-line-strong',
+          'overflow-hidden card-lift',
           live && 'border-accent shadow-[0_0_0_1px_var(--accent)]',
         )}
       >
@@ -186,7 +186,7 @@ function CurrentEventCard({ event }: { event: TeamEvent | null }) {
           <span
             className={cn(
               'grid size-12 shrink-0 place-items-center rounded-[14px]',
-              event.kind === 'race' ? 'bg-accent text-on-accent' : 'bg-sunken text-ink-2',
+              event.kind === 'race' ? 'bg-accent-fill text-on-accent' : 'bg-sunken text-ink-2',
             )}
           >
             {event.kind === 'race' ? <Flag className="size-6" /> : <Timer className="size-6" />}
@@ -229,10 +229,10 @@ function ChecklistCard({ teamId, event, kartId }: { teamId: string; event: TeamE
   const value = progress.total ? progress.done / progress.total : 0
 
   const body = (
-    <Card className="flex h-full flex-1 items-center gap-4 p-4 transition-colors hover:border-line-strong sm:p-5 lg:flex-col lg:justify-center lg:text-center">
+    <Card className="flex h-full flex-1 items-center gap-4 p-4 card-lift sm:p-5 lg:flex-col lg:justify-center lg:text-center">
       <ProgressRing value={value} />
       <span className="min-w-0">
-        <span className="display tnum block text-[1.25rem]">
+        <span className="display tnum text-gradient block text-[1.25rem]">
           {progress.done} / {progress.total}
         </span>
         <span className="block text-[0.9rem] text-ink-3">

@@ -101,7 +101,7 @@ export function MessageActions({
                   onClick={() => setAllEmoji((v) => !v)}
                   className={cn(
                     'grid size-12 place-items-center rounded-full transition-colors',
-                    allEmoji ? 'bg-accent text-on-accent' : 'bg-sunken text-ink-2 hover:bg-line',
+                    allEmoji ? 'bg-accent-fill text-on-accent' : 'bg-sunken text-ink-2 hover:bg-line',
                   )}
                 >
                   <Plus className="size-6" />

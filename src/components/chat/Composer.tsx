@@ -244,7 +244,7 @@ export const Composer = forwardRef<
           onClick={submit}
           disabled={!text.trim()}
           aria-label={t('chat.send')}
-          className="grid size-12 shrink-0 place-items-center rounded-full bg-accent text-on-accent transition-[background-color,color,transform] active:scale-95 disabled:bg-(--chat-field) disabled:text-ink-3"
+          className="grid size-12 shrink-0 place-items-center rounded-full bg-accent-fill text-on-accent transition-[background-color,color,transform] active:scale-95 disabled:bg-(--chat-field) disabled:bg-none disabled:text-ink-3"
         >
           {editing ? <Pencil className="size-5" /> : <ArrowUp className="size-6" strokeWidth={2.5} />}
         </button>

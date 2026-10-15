@@ -276,7 +276,7 @@ export function PressuresPage() {
                       onClick={() => toggle(k.id)}
                       className={cn(
                         'grid size-7 shrink-0 place-items-center rounded-[9px] border-2 transition-colors',
-                        on ? 'border-accent bg-accent text-on-accent' : 'border-line-strong',
+                        on ? 'border-accent bg-accent-fill text-on-accent' : 'border-line-strong',
                       )}
                     >
                       {on && <Check className="size-4" strokeWidth={3} />}

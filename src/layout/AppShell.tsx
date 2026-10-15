@@ -88,6 +88,7 @@ function Shell() {
   }, [unread])
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[280px_1fr]">
+      <div aria-hidden className="app-glow pointer-events-none fixed inset-x-0 top-0 -z-10 h-[440px]" />
       <Sidebar onSwitch={() => setContextOpen(true)} />
       <div className="min-w-0">
         <TopBar onSwitch={() => setContextOpen(true)} />
@@ -97,7 +98,13 @@ function Shell() {
             inChat ? 'pb-0 lg:pt-0' : 'pb-[calc(96px+env(safe-area-inset-bottom))] lg:pt-8 lg:pb-16',
           )}
         >
-          <Outlet />
+          {inChat ? (
+            <Outlet />
+          ) : (
+            <div key={path} className="animate-page">
+              <Outlet />
+            </div>
+          )}
         </main>
       </div>
       {!inConversation && <BottomNav chat={inChat} />}
@@ -118,7 +125,7 @@ function ContextButton({ onClick, compact }: { onClick: () => void; compact?: bo
       onClick={onClick}
       className={cn(
         'group flex min-w-0 items-center gap-3 text-left transition-colors',
-        compact ? '-ml-1.5 rounded-[16px] py-1.5 pr-2.5 pl-1.5 hover:bg-sunken' : 'w-full rounded-[18px] border border-line bg-surface-2 p-3 hover:border-line-strong',
+        compact ? '-ml-1.5 rounded-[16px] py-1.5 pr-2.5 pl-1.5 hover:bg-sunken' : 'w-full rounded-[18px] border border-line bg-card p-3 shadow-card hover:border-line-strong',
       )}
     >
       {kart ? <KartPlate number={kart.number} size="md" /> : <TeamBadge name={team.name} color={team.color} iconUrl={team.iconUrl} />}
@@ -140,7 +147,7 @@ function TopBar({ onSwitch }: { onSwitch: () => void }) {
   return (
     <div className="safe-top sticky top-0 z-30 border-b border-transparent bg-bg/85 backdrop-blur-xl lg:hidden">
       <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
-        {onHome ? <TiMark className="h-7 text-brand" /> : <ContextButton onClick={onSwitch} compact />}
+        {onHome ? <TiMark className="bg-brand-gradient h-7" /> : <ContextButton onClick={onSwitch} compact />}
         <span className="flex shrink-0 items-center gap-1.5">
           <ChatButton />
           <Link to="/settings" aria-label="Profil" className="shrink-0 rounded-full">
@@ -168,8 +175,8 @@ function Sidebar({ onSwitch }: { onSwitch: () => void }) {
           <Link
             key={to}
             to={to}
-            className="flex h-12 items-center gap-3.5 rounded-[14px] px-3.5 font-semibold text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
-            activeProps={{ className: 'bg-accent-soft! text-accent-ink!' }}
+            className="flex h-12 items-center gap-3.5 rounded-[14px] px-3.5 font-semibold text-ink-2 transition-[background-color,color,transform] duration-200 ease-out-soft hover:translate-x-0.5 hover:bg-surface-2 hover:text-ink"
+            activeProps={{ className: 'bg-accent-tonal! text-accent-ink! hover:translate-x-0!' }}
           >
             <Icon className="size-[22px]" strokeWidth={2} />
             {t(`nav.${key}`)}
@@ -177,8 +184,8 @@ function Sidebar({ onSwitch }: { onSwitch: () => void }) {
         ))}
         <Link
           to="/chat"
-          className="flex h-12 items-center gap-3.5 rounded-[14px] px-3.5 font-semibold text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
-          activeProps={{ className: 'bg-accent-soft! text-accent-ink!' }}
+          className="flex h-12 items-center gap-3.5 rounded-[14px] px-3.5 font-semibold text-ink-2 transition-[background-color,color,transform] duration-200 ease-out-soft hover:translate-x-0.5 hover:bg-surface-2 hover:text-ink"
+          activeProps={{ className: 'bg-accent-tonal! text-accent-ink! hover:translate-x-0!' }}
         >
           <MessageCircle className="size-[22px]" strokeWidth={2} />
           <span className="flex-1">{t('chat.title')}</span>
@@ -220,13 +227,15 @@ function BottomNav({ chat }: { chat?: boolean }) {
               <>
                 <span
                   className={cn(
-                    'grid h-8 w-14 place-items-center rounded-full transition-all duration-200',
-                    isActive ? 'bg-accent-soft text-accent-ink' : 'group-active:bg-sunken',
+                    'grid h-8 w-14 place-items-center rounded-full transition-colors duration-200',
+                    isActive
+                      ? 'animate-pop bg-accent-tonal text-accent-ink shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--accent)_22%,transparent)]'
+                      : 'group-active:bg-sunken',
                   )}
                 >
                   <Icon className="size-[22px]" strokeWidth={isActive ? 2.3 : 1.9} />
                 </span>
-                <span className={cn('text-[0.72rem] font-semibold leading-none', isActive && 'text-ink')}>
+                <span className={cn('text-[0.72rem] font-semibold leading-none transition-colors', isActive && 'text-accent-ink')}>
                   {t(`nav.${key}`)}
                 </span>
               </>

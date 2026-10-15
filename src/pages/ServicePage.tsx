@@ -92,7 +92,7 @@ export function ServicePage() {
         {/* Najdôležitejšie: pri koľkých motohodinách bol olej a kedy je ďalší */}
         <Card className="overflow-hidden">
           <div className="flex items-center gap-4 p-5">
-            <span className="grid size-14 shrink-0 place-items-center rounded-[16px] bg-accent text-on-accent">
+            <span className="grid size-14 shrink-0 place-items-center rounded-[16px] bg-accent-fill text-on-accent">
               <Droplet className="size-7" />
             </span>
             <div className="min-w-0 flex-1">

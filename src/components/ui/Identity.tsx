@@ -64,7 +64,7 @@ export function KartPlate({
     <span
       className={cn(
         'relative inline-flex shrink-0 items-center justify-center',
-        muted ? 'bg-sunken text-ink-2' : 'bg-accent text-on-accent',
+        muted ? 'bg-sunken text-ink-2' : 'bg-accent-fill text-on-accent shadow-[inset_0_1px_0_rgb(255_255_255/0.22)]',
         s.box,
         className,
       )}

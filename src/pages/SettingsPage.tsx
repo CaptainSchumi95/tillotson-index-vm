@@ -87,7 +87,7 @@ export function SettingsPage() {
                 aria-label={t('settings.photoChange')}
               >
                 <Avatar name={p.name} url={p.avatarUrl} size="xl" />
-                <span className="absolute -right-0.5 -bottom-0.5 grid size-9 place-items-center rounded-full border-[3px] border-surface bg-accent text-on-accent">
+                <span className="absolute -right-0.5 -bottom-0.5 grid size-9 place-items-center rounded-full border-[3px] border-surface bg-accent-fill text-on-accent">
                   {uploading ? <Spinner className="size-4" /> : <Camera className="size-4" />}
                 </span>
               </button>

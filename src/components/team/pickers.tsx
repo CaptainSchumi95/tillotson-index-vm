@@ -49,7 +49,7 @@ export function RolePicker({
             <span
               className={cn(
                 'grid size-6 shrink-0 place-items-center rounded-full border-2 transition-colors',
-                active ? 'border-accent bg-accent text-on-accent' : 'border-line-strong',
+                active ? 'border-accent bg-accent-fill text-on-accent' : 'border-line-strong',
               )}
             >
               {active && <Check className="size-3.5" strokeWidth={3} />}

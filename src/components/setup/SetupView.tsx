@@ -61,7 +61,7 @@ export function PressureGrid({
             {renderTire ? (
               <div className={cn('mt-1.5 flex', i % 2 === 1 && 'justify-end')}>{renderTire(f)}</div>
             ) : (
-              <div className={cn('display tnum mt-1 text-[1.75rem]', empty && 'text-ink-3/60')}>
+              <div className={cn('display tnum mt-1 text-[1.75rem]', empty ? 'text-ink-3/60' : 'text-gradient')}>
                 {formatField(f, values[f.key], prefs, i18n.language)}
               </div>
             )}

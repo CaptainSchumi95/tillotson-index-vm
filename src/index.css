@@ -31,7 +31,7 @@
   --on-accent: var(--team-light-on, #ffffff);
   --accent-ink: var(--team-light-ink, var(--brand));
 
-  --shadow-card: 0 1px 2px rgb(12 20 36 / 0.04);
+  --shadow-card: 0 1px 2px rgb(12 20 36 / 0.04), 0 8px 20px -14px rgb(12 20 36 / 0.12);
   --shadow-float: 0 14px 36px -14px rgb(12 20 36 / 0.28), 0 2px 6px rgb(12 20 36 / 0.06);
 
   color-scheme: light;
@@ -55,8 +55,8 @@
     --accent: var(--team-dark, #5b86ff);
     --on-accent: var(--team-dark-on, #ffffff);
     --accent-ink: var(--team-dark-ink, #8eabff);
-    --shadow-card: none;
-    --shadow-float: 0 18px 44px -14px rgb(0 0 0 / 0.65);
+    --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.04);
+    --shadow-float: 0 18px 44px -14px rgb(0 0 0 / 0.65), inset 0 1px 0 rgb(255 255 255 / 0.05);
     color-scheme: dark;
   }
 }
@@ -78,13 +78,21 @@
   --accent: var(--team-dark, #5b86ff);
   --on-accent: var(--team-dark-on, #ffffff);
   --accent-ink: var(--team-dark-ink, #8eabff);
-  --shadow-card: none;
-  --shadow-float: 0 18px 44px -14px rgb(0 0 0 / 0.65);
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --shadow-float: 0 18px 44px -14px rgb(0 0 0 / 0.65), inset 0 1px 0 rgb(255 255 255 / 0.05);
   color-scheme: dark;
 }
 
 :root {
   --accent-soft: color-mix(in oklab, var(--accent) 13%, var(--surface));
+
+  /* Prémiové prechody odvodené z farby tímu – fungujú pre každú farbu. */
+  --accent-hi: color-mix(in oklab, var(--accent) 74%, white);
+  --accent-lo: color-mix(in oklab, var(--accent) 80%, black);
+  --accent-glow: color-mix(in oklab, var(--accent) 42%, transparent);
+  --accent-fill: linear-gradient(140deg, var(--accent-hi) 0%, var(--accent) 50%, var(--accent-lo) 100%);
+  --accent-tonal: linear-gradient(140deg, color-mix(in oklab, var(--accent) 22%, var(--surface)), var(--accent-soft) 70%);
+  --card-sheen: linear-gradient(180deg, color-mix(in oklab, var(--surface) 96%, white), var(--surface) 140px);
 }
 
 @theme inline {
@@ -193,6 +201,90 @@
   color: var(--ink-3);
 }
 
+/* ───────────── Prémiové detaily ───────────── */
+
+/* Plná farba tímu s jemným prechodom (svetlejšia hore vľavo, hlbšia dole vpravo). */
+@utility bg-accent-fill {
+  background-color: var(--accent);
+  background-image: var(--accent-fill);
+}
+
+/* Jemný tónovaný podklad (aktívne položky, odznaky). */
+@utility bg-accent-tonal {
+  background-color: var(--accent-soft);
+  background-image: var(--accent-tonal);
+}
+
+/* Karta s nenápadným svetlom zhora. */
+@utility bg-card {
+  background-color: var(--surface);
+  background-image: var(--card-sheen);
+}
+
+/* Nadpisy: farba textu prechádza do farby tímu. */
+@utility text-gradient {
+  background-image: linear-gradient(170deg, var(--ink) 22%, color-mix(in oklab, var(--ink) 38%, var(--accent-ink)) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Text vo farbe tímu s prechodom. */
+@utility text-gradient-accent {
+  background-image: linear-gradient(100deg, var(--accent-ink), color-mix(in oklab, var(--accent-ink) 55%, var(--ink)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility glow-accent {
+  box-shadow: 0 10px 24px -10px var(--accent-glow);
+}
+
+/* Klikateľná karta: na počítači sa pri prejdení myšou jemne nadvihne. */
+@utility card-lift {
+  transition:
+    transform 260ms var(--ease-out-soft),
+    box-shadow 260ms var(--ease-out-soft),
+    border-color 150ms;
+  &:active {
+    transform: scale(0.992);
+  }
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-2px);
+      border-color: var(--line-strong);
+      box-shadow: var(--shadow-float);
+    }
+  }
+}
+
+/* Lesk, ktorý prebehne cez tlačidlo pri prejdení myšou. */
+@utility sheen {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.26) 50%, transparent 70%);
+    transform: translateX(-120%);
+    pointer-events: none;
+  }
+  @media (hover: hover) {
+    &:hover::after {
+      transform: translateX(120%);
+      transition: transform 750ms var(--ease-out-soft);
+    }
+  }
+}
+
+/* Jemná žiara farby tímu za hornou časťou aplikácie. */
+@utility app-glow {
+  background: radial-gradient(75% 100% at 50% 0%, color-mix(in oklab, var(--accent) 11%, transparent), transparent 72%);
+}
+
 @utility tnum {
   font-variant-numeric: tabular-nums;
 }
@@ -278,6 +370,28 @@
 
 @utility animate-rise {
   animation: rise 420ms var(--ease-out-soft) both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Prechod medzi stránkami – iba priehľadnosť (neruší pevné lišty na stránke). */
+@utility animate-page {
+  animation: fade-in 260ms ease-out both;
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.82);
+    opacity: 0.4;
+  }
+}
+
+@utility animate-pop {
+  animation: pop 320ms var(--ease-out-soft) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -73,7 +73,7 @@ export function PushPrompt({ always, compact, className }: { always?: boolean; c
       <div className="flex gap-3.5">
         <span
           className={cn(
-            'grid shrink-0 place-items-center bg-accent text-on-accent',
+            'grid shrink-0 place-items-center bg-accent-fill text-on-accent',
             compact ? 'size-9 rounded-[12px]' : 'size-11 rounded-[14px]',
           )}
         >

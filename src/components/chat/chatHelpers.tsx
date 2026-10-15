@@ -34,7 +34,7 @@ export function useChannelInfo() {
           className={cn(
             'grid shrink-0 place-items-center rounded-[13px]',
             size === 'lg' ? 'size-16 rounded-[18px]' : 'size-10',
-            c.kind === 'announcements' ? 'bg-accent text-on-accent' : 'bg-accent-soft text-accent-ink',
+            c.kind === 'announcements' ? 'bg-accent-fill text-on-accent' : 'bg-accent-soft text-accent-ink',
           )}
         >
           <Icon className={size === 'lg' ? 'size-7' : 'size-5'} />

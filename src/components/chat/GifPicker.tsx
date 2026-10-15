@@ -77,7 +77,7 @@ export function GifPicker({
       onClick={() => setTab(value)}
       className={cn(
         'flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[0.88rem] font-semibold transition-colors',
-        tab === value ? 'bg-accent text-on-accent' : 'bg-sunken text-ink-2 hover:text-ink',
+        tab === value ? 'bg-accent-fill text-on-accent' : 'bg-sunken text-ink-2 hover:text-ink',
       )}
     >
       {icon}
