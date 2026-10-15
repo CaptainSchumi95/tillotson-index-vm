@@ -8,6 +8,9 @@ import type {
   Invitation,
   KartNote,
   KartNoteInput,
+  PressureOrder,
+  PressureOrderInput,
+  PressureSampleRow,
   ServiceEntry,
   ServiceEntryInput,
   Kart,
@@ -134,4 +137,13 @@ export interface Backend {
   listTrackSetups(teamId: string): Promise<TrackSetup[]>
   saveTrackSetup(teamId: string, input: TrackSetupInput): Promise<string>
   deleteTrackSetup(setupId: string): Promise<void>
+
+  /** Merania tlakov zo všetkých jázd tímu (pre výpočet a štatistiku). */
+  listPressureSamples(teamId: string): Promise<PressureSampleRow[]>
+  /** Posledné príkazy na natlakovanie (najnovšie prvé). */
+  listPressureOrders(teamId: string): Promise<PressureOrder[]>
+  sendPressureOrders(orders: PressureOrderInput[]): Promise<void>
+  cancelPressureOrder(orderId: string): Promise<void>
+  /** Mechanik natlakoval: uloží revíziu setupu (idempotentne) a označí príkaz za vybavený. */
+  completePressureOrder(orderId: string, revision: SetupRevisionInput): Promise<void>
 }

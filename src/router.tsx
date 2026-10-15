@@ -13,6 +13,8 @@ import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotesPage } from '@/pages/NotesPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
+import { PressureStatsPage } from '@/pages/PressureStatsPage'
+import { PressuresPage } from '@/pages/PressuresPage'
 import { ServicePage } from '@/pages/ServicePage'
 import { SessionEditPage } from '@/pages/SessionEditPage'
 import { SessionPage } from '@/pages/SessionPage'
@@ -140,6 +142,8 @@ const routeTree = rootRoute.addChildren([
     ),
     page('/team/checklist', ChecklistTemplatePage),
     page('/setup', SetupPage),
+    page('/pressures', PressuresPage),
+    page('/pressures/$kartId', PressureStatsPage),
     page('/setup/edit', SetupEditPage),
     page('/setup/fields', SetupFieldsPage),
     page('/setup/variants/$variantId', VariantEditPage),

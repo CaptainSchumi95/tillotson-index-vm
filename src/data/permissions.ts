@@ -3,7 +3,7 @@ import type { Permission } from './types'
 /** Oprávnenia zoskupené tak, ako sa zobrazujú v editore rolí. */
 export const PERMISSION_GROUPS: { key: 'team' | 'setup' | 'weekend' | 'tracks' | 'kart'; permissions: Permission[] }[] = [
   { key: 'team', permissions: ['team.manage', 'kart.all'] },
-  { key: 'setup', permissions: ['setup.view', 'setup.edit'] },
+  { key: 'setup', permissions: ['setup.view', 'setup.edit', 'pressure.engineer'] },
   { key: 'weekend', permissions: ['event.view', 'event.manage', 'session.edit', 'session.feedback', 'checklist.edit'] },
   { key: 'tracks', permissions: ['track.view', 'track.manage', 'track.apply'] },
   { key: 'kart', permissions: ['service.edit', 'notes.edit'] },
@@ -12,6 +12,7 @@ export const PERMISSION_GROUPS: { key: 'team' | 'setup' | 'weekend' | 'tracks' |
 /** Čo oprávnenie nevyhnutne potrebuje (meniť setup bez toho, aby ho človek videl, nedáva zmysel). */
 const REQUIRES: Partial<Record<Permission, Permission[]>> = {
   'setup.edit': ['setup.view'],
+  'pressure.engineer': ['setup.view'],
   'event.manage': ['event.view'],
   'session.edit': ['event.view'],
   'session.feedback': ['event.view'],

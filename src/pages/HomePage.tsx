@@ -10,6 +10,8 @@ import { PressureGrid, useUnitPrefs } from '@/components/setup/SetupView'
 import { useCan, useCurrentKart, useCurrentTeam, useNotes, useService, useSetupRevisions } from '@/data/queries'
 import { currentEventFor, isActive, nextScheduleItem, useEvents, useSchedule } from '@/data/events'
 import { useChecklistProgress } from '@/components/weekend/ChecklistView'
+import { EngineerEntry } from '@/components/pressures/EngineerEntry'
+import { PressureOrderCard } from '@/components/pressures/PressureOrderCard'
 import { lastOilInfo, useHoursFormat } from '@/pages/ServicePage'
 import type { TeamEvent } from '@/data/types'
 import { cn } from '@/lib/cn'
@@ -72,6 +74,10 @@ export function HomePage() {
           <ChevronDown className="size-4" />
         </span>
       </button>
+
+      {can('setup.view') && <PressureOrderCard teamId={team.id} kartId={kart.id} />}
+
+      {can('pressure.engineer') && <EngineerEntry />}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-6">
         {/* Aktuálna udalosť */}

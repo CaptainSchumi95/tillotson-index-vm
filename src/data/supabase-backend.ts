@@ -13,6 +13,9 @@ import {
   type TrackSetup,
   type Invitation,
   type KartNote,
+  type PressureOrder,
+  type PressureSampleRow,
+  type SessionPressures,
   type ServiceEntry,
   type Kart,
   type Member,
@@ -29,6 +32,19 @@ type Row = Record<string, any>
 function toRole(r: Row): Role {
   return { id: r.id, name: r.name, preset: r.preset ?? null }
 }
+
+/** Vnorené merania – PostgREST vráti objekt (1:1) alebo pole. */
+function toPressures(v: Row | Row[] | null | undefined): SessionPressures | null {
+  const r = Array.isArray(v) ? v[0] : v
+  if (!r) return null
+  return {
+    airTemp: r.air_temp == null ? null : Number(r.air_temp),
+    trackTemp: r.track_temp == null ? null : Number(r.track_temp),
+    tires: r.tires ?? {},
+  }
+}
+
+const num = (v: unknown) => (v == null ? null : Number(v))
 
 function toAuthor(r: Row | null) {
   return r ? { id: r.id as string, name: r.name as string, avatarUrl: r.avatar_url as string | null } : null
@@ -543,7 +559,7 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
         await sb
           .from('sessions')
           .select(
-            'id, event_id, kart_id, label, best_lap_ms, laps, track_condition, conditions_note, balance, behaviour, driver_feedback, next_plan, setup_revision_id, recorded_at, author:profiles(id, name, avatar_url)',
+            'id, event_id, kart_id, label, best_lap_ms, laps, track_condition, conditions_note, balance, behaviour, driver_feedback, next_plan, setup_revision_id, recorded_at, author:profiles(id, name, avatar_url), session_pressures(air_temp, track_temp, tires)',
           )
           .eq('kart_id', kartId)
           .order('recorded_at', { ascending: false })
@@ -564,6 +580,7 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
           driverFeedback: r.driver_feedback,
           nextPlan: r.next_plan,
           setupRevisionId: r.setup_revision_id,
+          pressures: toPressures(r.session_pressures),
           recordedAt: r.recorded_at,
           author: toAuthor(r.author),
         }),
@@ -593,6 +610,20 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
           { onConflict: 'id' },
         ),
       )
+      if (input.pressures) {
+        must(
+          await sb.from('session_pressures').upsert(
+            {
+              session_id: input.id,
+              kart_id: input.kartId,
+              air_temp: input.pressures.airTemp,
+              track_temp: input.pressures.trackTemp,
+              tires: input.pressures.tires,
+            },
+            { onConflict: 'session_id' },
+          ),
+        )
+      }
     },
 
     async deleteSession(sessionId) {
@@ -657,6 +688,98 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
 
     async deleteTrackSetup(setupId) {
       must(await sb.from('track_setups').delete().eq('id', setupId))
+    },
+
+    async listPressureSamples(teamId) {
+      const rows = must(
+        await sb
+          .from('session_pressures')
+          .select('session_id, kart_id, air_temp, track_temp, tires, session:sessions(label, recorded_at)')
+          .eq('team_id', teamId)
+          .limit(1000),
+      ) as Row[]
+      return rows
+        .map(
+          (r): PressureSampleRow => ({
+            sessionId: r.session_id,
+            kartId: r.kart_id,
+            airTemp: num(r.air_temp),
+            trackTemp: num(r.track_temp),
+            tires: r.tires ?? {},
+            label: r.session?.label ?? '',
+            recordedAt: r.session?.recorded_at ?? '',
+          }),
+        )
+        .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
+    },
+
+    async listPressureOrders(teamId) {
+      const rows = must(
+        await sb
+          .from('pressure_orders')
+          .select(
+            'id, kart_id, event_id, values, target_hot, air_temp, track_temp, note, status, created_at, done_at, creator:profiles!pressure_orders_created_by_fkey(id, name, avatar_url), doer:profiles!pressure_orders_done_by_fkey(id, name, avatar_url)',
+          )
+          .eq('team_id', teamId)
+          .order('created_at', { ascending: false })
+          .limit(200),
+      ) as Row[]
+      return rows.map(
+        (r): PressureOrder => ({
+          id: r.id,
+          kartId: r.kart_id,
+          eventId: r.event_id,
+          values: r.values ?? {},
+          targetHot: num(r.target_hot),
+          airTemp: num(r.air_temp),
+          trackTemp: num(r.track_temp),
+          note: r.note,
+          status: r.status,
+          createdAt: r.created_at,
+          doneAt: r.done_at,
+          createdBy: toAuthor(r.creator),
+          doneBy: toAuthor(r.doer),
+        }),
+      )
+    },
+
+    async sendPressureOrders(orders) {
+      const me = await uid()
+      must(
+        await sb.from('pressure_orders').insert(
+          orders.map((o) => ({
+            kart_id: o.kartId,
+            event_id: o.eventId,
+            values: o.values,
+            target_hot: o.targetHot,
+            air_temp: o.airTemp,
+            track_temp: o.trackTemp,
+            note: o.note,
+            created_by: me,
+          })),
+        ),
+      )
+    },
+
+    async cancelPressureOrder(orderId) {
+      must(await sb.from('pressure_orders').update({ status: 'cancelled' }).eq('id', orderId).eq('status', 'pending'))
+    },
+
+    async completePressureOrder(orderId, revision) {
+      must(
+        await sb.from('setup_revisions').upsert(
+          {
+            id: revision.id,
+            kart_id: revision.kartId,
+            values: revision.values,
+            note: revision.note,
+            recorded_at: revision.recordedAt,
+            author_id: await uid(),
+          },
+          { onConflict: 'id', ignoreDuplicates: true },
+        ),
+      )
+      must(await sb.rpc('complete_pressure_order', { p_order: orderId, p_revision: revision.id }))
     },
   }
 }

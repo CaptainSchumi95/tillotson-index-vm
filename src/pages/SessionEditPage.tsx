@@ -13,7 +13,9 @@ import { FullScreenLoader } from '@/components/ui/Spinner'
 import { useEvents, useSchedule } from '@/data/events'
 import { useCan, useCurrentTeam, useKarts, useSetupRevisions } from '@/data/queries'
 import { useSaveSession, useSessions } from '@/data/sessions'
-import type { Balance, TrackCondition } from '@/data/types'
+import type { Balance, SessionPressures, TrackCondition } from '@/data/types'
+import { hasReadings, PressureReadingsEditor } from '@/components/pressures/PressureReadings'
+import { TIRES } from '@/lib/pressure'
 import { cn } from '@/lib/cn'
 import { formatLapTime, parseLapTime } from '@/lib/laptime'
 import { nowTime, relativeTime, todayIso } from '@/lib/time'
@@ -50,6 +52,7 @@ export function SessionEditPage() {
   const [behaviour, setBehaviour] = useState('')
   const [feedback, setFeedback] = useState('')
   const [plan, setPlan] = useState('')
+  const [pressures, setPressures] = useState<SessionPressures>({ airTemp: null, trackTemp: null, tires: {} })
   const [loaded, setLoaded] = useState(false)
 
   const eventSessions = useMemo(() => (sessions.data ?? []).filter((s) => s.eventId === eventId), [sessions.data, eventId])
@@ -57,7 +60,7 @@ export function SessionEditPage() {
   // Predvyplnenie: pri úprave hodnoty jazdy, pri novej názov podľa programu a podmienky z minulej jazdy.
   useEffect(() => {
     // Čakáme na jazdy aj harmonogram – názov novej jazdy sa berie z programu.
-    if (loaded || !sessions.data || (!sessionId && schedule.isPending)) return
+    if (loaded || !sessions.data || (!sessionId && (schedule.isPending || (can('setup.view') && revisions.isPending)))) return
     if (sessionId) {
       if (!existing) return
       setLabel(existing.label)
@@ -69,15 +72,26 @@ export function SessionEditPage() {
       setBehaviour(existing.behaviour)
       setFeedback(existing.driverFeedback)
       setPlan(existing.nextPlan)
+      if (existing.pressures) setPressures(existing.pressures)
     } else {
       const today = todayIso()
       const now = nowTime()
       const started = (schedule.data ?? []).filter((i) => i.day < today || (i.day === today && (i.time ?? '') <= now))
       setLabel(started.at(-1)?.title ?? `${t('weekend.session.title')} ${eventSessions.length + 1}`)
       setCondition(eventSessions[0]?.trackCondition ?? null)
+      // Studený tlak = to, čo je teraz na motokáre zapísané v setupe.
+      const v = revisions.data?.[0]?.values ?? {}
+      const num = (x: unknown) => (typeof x === 'number' ? x : null)
+      setPressures({
+        airTemp: eventSessions[0]?.pressures?.airTemp ?? null,
+        trackTemp: eventSessions[0]?.pressures?.trackTemp ?? null,
+        tires: Object.fromEntries(
+          TIRES.map((tire) => [tire, { cold: num(v[`tire_${tire}`]), hot: null, temp: null }]),
+        ),
+      })
     }
     setLoaded(true)
-  }, [loaded, sessions.data, existing, sessionId, schedule.data, eventSessions, i18n.language, t])
+  }, [loaded, sessions.data, existing, sessionId, schedule.data, eventSessions, i18n.language, t, revisions.data])
 
   if (!team || !can('session.edit')) return null
   if (!event || !loaded) return <FullScreenLoader />
@@ -105,6 +119,8 @@ export function SessionEditPage() {
       nextPlan: plan.trim(),
       // Pri úprave ostane setup z času jazdy, pri novej sa uloží aktuálny.
       setupRevisionId: existing ? existing.setupRevisionId : (currentSetup?.id ?? null),
+      // Merania iba s oprávnením na setup; prázdne sa neukladajú (undefined = nemeniť).
+      pressures: can('setup.view') && hasReadings(pressures) ? pressures : undefined,
       recordedAt: existing?.recordedAt ?? new Date().toISOString(),
     })
     if (existing) router.history.back()
@@ -208,6 +224,13 @@ export function SessionEditPage() {
             className={TEXTAREA}
           />
         </Section>
+
+        {can('setup.view') && (
+          <Section title={t('pressures.reading.title')}>
+            <p className="px-1 text-[0.85rem] leading-relaxed text-ink-3">{t('pressures.reading.hint')}</p>
+            <PressureReadingsEditor value={pressures} onChange={setPressures} />
+          </Section>
+        )}
 
         <Section title={t('weekend.session.plan')}>
           <textarea

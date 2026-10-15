@@ -1,11 +1,13 @@
 import type { UnitPrefs } from '@/lib/units'
 import type { FieldUnit, SetupGroup, SetupValues } from './setup-fields'
+import type { PressureSample, Tire, TireReading } from '@/lib/pressure'
 
 export const PERMISSIONS = [
   'team.manage',
   'kart.all',
   'setup.view',
   'setup.edit',
+  'pressure.engineer',
   'event.view',
   'event.manage',
   'session.edit',
@@ -20,7 +22,7 @@ export const PERMISSIONS = [
 
 export type Permission = (typeof PERMISSIONS)[number]
 
-export type RolePreset = 'manager' | 'chief_mechanic' | 'mechanic' | 'driver'
+export type RolePreset = 'manager' | 'chief_mechanic' | 'engineer' | 'mechanic' | 'driver'
 
 export interface Profile {
   id: string
@@ -253,6 +255,8 @@ export interface Session {
   nextPlan: string
   /** Revízia setupu, ktorá bola na motokáre počas jazdy. */
   setupRevisionId: string | null
+  /** Merania tlakov a teplôt (iba pre toho, kto vidí setup). undefined = nemeniť. */
+  pressures?: SessionPressures | null
   author: Author
   recordedAt: string
   pending?: boolean
@@ -285,3 +289,45 @@ export interface TrackSetup {
 }
 
 export type TrackSetupInput = Pick<TrackSetup, 'trackId' | 'name' | 'values' | 'notes'> & { id?: string }
+
+// ───────────── Tlaky (Inžinier) ─────────────
+
+export interface SessionPressures {
+  /** °C */
+  airTemp: number | null
+  /** °C */
+  trackTemp: number | null
+  tires: Partial<Record<Tire, TireReading>>
+}
+
+/** Meranie z jazdy pre výpočet (s údajmi o jazde). */
+export interface PressureSampleRow extends PressureSample {
+  sessionId: string
+  label: string
+  recordedAt: string
+}
+
+export type PressureOrderStatus = 'pending' | 'done' | 'replaced' | 'cancelled'
+
+/** Príkaz inžiniera na natlakovanie motokáry. */
+export interface PressureOrder {
+  id: string
+  kartId: string
+  eventId: string | null
+  /** tire_fl … tire_rr v bar (za studena) */
+  values: Record<string, number>
+  targetHot: number | null
+  airTemp: number | null
+  trackTemp: number | null
+  note: string
+  status: PressureOrderStatus
+  createdBy: Author
+  createdAt: string
+  doneBy: Author
+  doneAt: string | null
+}
+
+export type PressureOrderInput = Pick<
+  PressureOrder,
+  'kartId' | 'eventId' | 'values' | 'targetHot' | 'airTemp' | 'trackTemp' | 'note'
+>

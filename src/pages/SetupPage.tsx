@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { SetupHistory } from '@/components/setup/SetupHistory'
 import { SetupVariants } from '@/components/setup/SetupVariants'
 import { SetupView } from '@/components/setup/SetupView'
+import { EngineerEntry } from '@/components/pressures/EngineerEntry'
+import { PressureOrderCard } from '@/components/pressures/PressureOrderCard'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -108,6 +110,8 @@ export function SetupPage() {
 
       {tab === 'current' && (
         <div className="space-y-8">
+          <PressureOrderCard teamId={team!.id} kartId={kart.id} />
+          {can('pressure.engineer') && <EngineerEntry />}
           <p className="-mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 px-1 text-[0.9rem] text-ink-3">
             {t('setup.lastChange', { name: author, when: relativeTime(current.recordedAt, i18n.language, t('time.justNow')) })}
             {current.pending && (

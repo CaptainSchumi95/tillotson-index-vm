@@ -3,6 +3,7 @@
 
 import { DEFAULT_UNITS } from '@/lib/units'
 import { blobToDataUrl } from '@/lib/image'
+import { P_ATM, TIRES } from '@/lib/pressure'
 import type { AuthUser, Backend } from './backend'
 import {
   PERMISSIONS,
@@ -13,6 +14,8 @@ import {
   type TeamEvent,
   type Kart,
   type KartNoteInput,
+  type PressureOrder,
+  type SessionPressures,
   type ServiceEntryInput,
   type Permission,
   type Profile,
@@ -67,6 +70,8 @@ interface DemoVariant {
 }
 
 interface DemoDb {
+  pressures: Record<string, SessionPressures & { kartId: string }>
+  orders: (Omit<PressureOrder, 'createdBy' | 'doneBy'> & { teamId: string; createdById: string; doneById: string | null })[]
   tracks: Track[]
   trackSetups: (TrackSetupInput & { id: string; teamId: string; updatedAt: string; updatedById: string })[]
   sessions: (SessionInput & { authorId: string })[]
@@ -95,6 +100,9 @@ const MECHANIC: Permission[] = [
   'checklist.edit', 'track.view', 'track.apply', 'service.edit', 'notes.edit',
 ]
 const DRIVER: Permission[] = ['event.view', 'session.feedback', 'track.view', 'notes.edit']
+const ENGINEER: Permission[] = [
+  'kart.all', 'setup.view', 'event.view', 'session.edit', 'session.feedback', 'track.view', 'pressure.engineer',
+]
 
 /** Rovnaké predvolené roly ako create_team() v databáze. */
 function defaultRoles(teamId: string): DemoRole[] {
@@ -102,8 +110,9 @@ function defaultRoles(teamId: string): DemoRole[] {
     { id: `${teamId}-manager`, teamId, name: 'Manažér', preset: 'manager', permissions: [...PERMISSIONS] },
     {
       id: `${teamId}-chief`, teamId, name: 'Šéfmechanik', preset: 'chief_mechanic',
-      permissions: PERMISSIONS.filter((p) => p !== 'team.manage'),
+      permissions: PERMISSIONS.filter((p) => p !== 'team.manage' && p !== 'pressure.engineer'),
     },
+    { id: `${teamId}-engineer`, teamId, name: 'Inžinier', preset: 'engineer', permissions: ENGINEER },
     { id: `${teamId}-mechanic`, teamId, name: 'Mechanik', preset: 'mechanic', permissions: MECHANIC },
     { id: `${teamId}-driver`, teamId, name: 'Jazdec', preset: 'driver', permissions: DRIVER },
   ]
@@ -218,6 +227,49 @@ function demoTracks(): Pick<DemoDb, 'tracks' | 'trackSetups'> {
   }
 }
 
+/**
+ * Merania tlakov: 95 má 5 jázd pri rôznej teplote trate (výpočet použije model),
+ * 51 jednu (priemer), 73 žiadnu (odhad z teploty pneumatík).
+ * Teplé tlaky sú dopočítané fyzikálne z „ohrevu“ pneumatiky, ktorý rastie s teplotou trate.
+ */
+function demoPressures(): Pick<DemoDb, 'pressures' | 'orders'> & { history: DemoDb['sessions'] } {
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString()
+  const reading = (kartId: string, air: number, track: number, cold: number, heat: number): SessionPressures & { kartId: string } => {
+    // ľavé kolesá sa na okruhu v smere hodín zohrejú o kúsok viac
+    const offset = { fl: 2, fr: -1, rl: 3, rr: 0 } as const
+    const tires = Object.fromEntries(
+      TIRES.map((t) => {
+        const eff = heat + 0.9 * track + offset[t]
+        const hot = Math.round(((cold + P_ATM) * (eff + 273.15)) / (air + 273.15) * 100 - P_ATM * 100) / 100
+        return [t, { cold, hot, temp: Math.round(eff - 4) }]
+      }),
+    )
+    return { kartId, airTemp: air, trackTemp: track, tires }
+  }
+  const old = (id: string, kartId: string, label: string, h: number, lap: number): DemoDb['sessions'][number] => ({
+    id, eventId: 'ev-test', kartId, label, bestLapMs: lap, laps: 12, trackCondition: 'dry', conditionsNote: '',
+    balance: 'neutral', behaviour: '', driverFeedback: '', nextPlan: '', setupRevisionId: null, authorId: 'p-peter',
+    recordedAt: hoursAgo(h),
+  })
+  return {
+    history: [
+      old('ses-h1', 'kart-95', 'Tréning – ráno', 24 * 9 + 6, 55_310),
+      old('ses-h2', 'kart-95', 'Tréning – poobede', 24 * 9 + 2, 54_980),
+      old('ses-h3', 'kart-95', 'Tréning – večer', 24 * 9, 55_120),
+      old('ses-h4', 'kart-51', 'Tréning', 24 * 9 + 3, 55_640),
+    ],
+    pressures: {
+      'ses-h1': reading('kart-95', 14, 18, 0.68, 24),
+      'ses-h2': reading('kart-95', 21, 34, 0.6, 24),
+      'ses-h3': reading('kart-95', 17, 25, 0.64, 24),
+      'ses-1': reading('kart-95', 19, 27, 0.63, 24),
+      'ses-2': reading('kart-95', 22, 31, 0.61, 24),
+      'ses-h4': reading('kart-51', 20, 30, 0.62, 20),
+    },
+    orders: [],
+  }
+}
+
 /** Dve vzorové jazdy motokáry 95 dnes – s rôznym setupom, nech je čo porovnať. */
 function demoSessions(): Pick<DemoDb, 'sessions'> {
   const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString()
@@ -258,6 +310,12 @@ function demoNotesService(): Pick<DemoDb, 'notes' | 'service'> {
   }
 }
 
+/** Vzorové jazdy + historické jazdy s meraniami tlakov. */
+function withPressures(base: Pick<DemoDb, 'sessions'>): Pick<DemoDb, 'sessions' | 'pressures' | 'orders'> {
+  const { history, pressures, orders } = demoPressures()
+  return { sessions: [...base.sessions, ...history], pressures, orders }
+}
+
 function seed(): DemoDb {
   const teamId = 'team-demo'
   const profile: Profile = {
@@ -290,6 +348,7 @@ function seed(): DemoDb {
     ...demoEvents(),
     ...demoSessions(),
     ...demoTracks(),
+    ...withPressures(demoSessions()),
     karts: [
       { id: 'kart-95', teamId, number: '95', driverName: 'Adam' },
       { id: 'kart-51', teamId, number: '51', driverName: 'Ema' },
@@ -301,7 +360,7 @@ function seed(): DemoDb {
 function load(): DemoDb {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return { ...demoSetup(), ...demoNotesService(), ...demoEvents(), ...demoSessions(), ...demoTracks(), ...(JSON.parse(raw) as DemoDb) }
+    if (raw) return { ...demoSetup(), ...demoNotesService(), ...demoEvents(), ...withPressures(demoSessions()), ...demoTracks(), ...(JSON.parse(raw) as DemoDb) }
   } catch {
     /* poškodené dáta – začneme odznova */
   }
@@ -848,14 +907,75 @@ export function createDemoBackend(): Backend {
       return db.sessions
         .filter((s) => s.kartId === kartId)
         .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
-        .map(({ authorId, ...s }) => ({ ...s, author: authorOf(db, authorId) }))
+        .map(({ authorId, ...s }) => {
+          const pr = db.pressures[s.id]
+          return { ...s, pressures: pr ? { airTemp: pr.airTemp, trackTemp: pr.trackTemp, tires: pr.tires } : null, author: authorOf(db, authorId) }
+        })
     },
 
     async saveSession(input) {
       await delay()
       mutate((db) => {
+        const { pressures, ...session } = input
         db.sessions = db.sessions.filter((s) => s.id !== input.id)
-        db.sessions.push({ ...input, authorId: ME })
+        db.sessions.push({ ...session, authorId: ME })
+        if (pressures) db.pressures[input.id] = { ...pressures, kartId: input.kartId }
+      })
+    },
+
+    async listPressureSamples(teamId) {
+      await delay()
+      const db = load()
+      const teamKarts = new Set(db.karts.filter((k) => k.teamId === teamId).map((k) => k.id))
+      return Object.entries(db.pressures)
+        .filter(([, pr]) => teamKarts.has(pr.kartId))
+        .map(([sessionId, pr]) => {
+          const s = db.sessions.find((x) => x.id === sessionId)
+          return { sessionId, label: s?.label ?? '', recordedAt: s?.recordedAt ?? '', ...pr }
+        })
+        .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
+    },
+
+    async listPressureOrders(teamId) {
+      await delay()
+      const db = load()
+      return db.orders
+        .filter((o) => o.teamId === teamId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map(({ teamId: _t, createdById, doneById, ...o }) => ({
+          ...o,
+          createdBy: authorOf(db, createdById),
+          doneBy: doneById ? authorOf(db, doneById) : null,
+        }))
+    },
+
+    async sendPressureOrders(orders) {
+      await delay()
+      mutate((db) => {
+        for (const o of orders) {
+          const teamId = db.karts.find((k) => k.id === o.kartId)?.teamId ?? ''
+          db.orders.forEach((x) => {
+            if (x.kartId === o.kartId && x.status === 'pending') x.status = 'replaced'
+          })
+          db.orders.push({ ...o, id: uid(), teamId, status: 'pending', createdById: ME, createdAt: new Date().toISOString(), doneById: null, doneAt: null })
+        }
+      })
+    },
+
+    async cancelPressureOrder(orderId) {
+      await delay()
+      mutate((db) => {
+        const o = db.orders.find((x) => x.id === orderId)
+        if (o?.status === 'pending') o.status = 'cancelled'
+      })
+    },
+
+    async completePressureOrder(orderId, revision) {
+      await delay()
+      mutate((db) => {
+        if (!db.revisions.some((r) => r.id === revision.id)) db.revisions.push({ ...revision, authorId: ME })
+        const o = db.orders.find((x) => x.id === orderId)
+        if (o?.status === 'pending') Object.assign(o, { status: 'done', doneById: ME, doneAt: new Date().toISOString() })
       })
     },
 

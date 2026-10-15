@@ -10,6 +10,7 @@ import { backend } from '@/data'
 import { qk, SAVE_NOTE_KEY, SAVE_SERVICE_KEY, SAVE_SETUP_KEY } from '@/data/queries'
 import { ek, SET_ROUND_KEY, TOGGLE_CHECK_KEY, type RoundInput } from '@/data/events'
 import { SAVE_SESSION_KEY, sk } from '@/data/sessions'
+import { COMPLETE_ORDER_KEY, pk, type CompleteOrderInput } from '@/data/pressures'
 import type { CheckInput, KartNoteInput, ServiceEntryInput, SessionInput, SetupRevisionInput } from '@/data/types'
 import { QUERY_CACHE_KEY, QUERY_CACHE_SCHEMA } from '@/lib/cache'
 import { router } from '@/router'
@@ -47,6 +48,17 @@ queryClient.setMutationDefaults(SAVE_SESSION_KEY, {
   scope: { id: 'track' },
   mutationFn: (input: SessionInput) => backend.saveSession(input),
   onSettled: (_d, _e, input: SessionInput) => queryClient.invalidateQueries({ queryKey: sk.sessions(input.kartId) }),
+})
+// Natlakovanie podľa inžiniera: revízia setupu + potvrdenie príkazu (fronta setupu).
+queryClient.setMutationDefaults(COMPLETE_ORDER_KEY, {
+  ...offline,
+  scope: { id: 'track' },
+  mutationFn: (input: CompleteOrderInput) => backend.completePressureOrder(input.orderId, input.revision),
+  onSettled: (_d, _e, input: CompleteOrderInput) =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: pk.orders(input.teamId) }),
+      queryClient.invalidateQueries({ queryKey: qk.setup(input.revision.kartId) }),
+    ]),
 })
 queryClient.setMutationDefaults(SAVE_NOTE_KEY, {
   ...offline,

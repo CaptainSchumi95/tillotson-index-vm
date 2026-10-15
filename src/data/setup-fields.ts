@@ -146,3 +146,7 @@ export function parseNumber(text: string): number | null {
 export function displayDecimals(field: SetupField, prefs: UnitPrefs): [min: number, max: number] {
   return DISPLAY_DECIMALS[displayUnit(field, prefs)] ?? [0, 2]
 }
+
+/** Pomocné „položky“ na zobrazenie a zadávanie tlaku a teploty mimo setupu (v jednotkách používateľa). */
+export const PRESSURE_FIELD: SetupField = { key: '_pressure', group: 'other', unit: 'pressure', step: 0.01 }
+export const TEMP_FIELD: SetupField = { key: '_temp', group: 'other', unit: 'temperature', step: 1 }

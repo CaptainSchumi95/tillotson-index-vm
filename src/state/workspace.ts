@@ -9,6 +9,9 @@ interface WorkspaceState {
   kartByTeam: Record<string, string | null>
   lastSection: string
   theme: ThemeMode
+  /** Posledný cieľový tlak za tepla inžiniera (bar). */
+  targetHot: number
+  setTargetHot: (bar: number) => void
   selectTeam: (teamId: string) => void
   selectKart: (teamId: string, kartId: string | null) => void
   setLastSection: (path: string) => void
@@ -23,6 +26,8 @@ export const useWorkspace = create<WorkspaceState>()(
       kartByTeam: {},
       lastSection: '/home',
       theme: 'system',
+      targetHot: 0.8,
+      setTargetHot: (targetHot) => set({ targetHot }),
       selectTeam: (teamId) => set({ teamId }),
       selectKart: (teamId, kartId) => set((s) => ({ kartByTeam: { ...s.kartByTeam, [teamId]: kartId } })),
       setLastSection: (lastSection) => set({ lastSection }),

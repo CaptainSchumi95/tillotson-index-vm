@@ -4,6 +4,7 @@ import { BookmarkPlus, Info, Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useFieldLabel, useUnitPrefs } from '@/components/setup/SetupView'
 import { CONDITION_ICON, DeltaBadge, lapDelta } from '@/components/weekend/SessionsTab'
+import { PressureReadingsView } from '@/components/pressures/PressureReadings'
 import { Button } from '@/components/ui/Button'
 import { Badge, Card, Section } from '@/components/ui/Card'
 import { ConfirmSheet } from '@/components/ui/ConfirmSheet'
@@ -132,6 +133,12 @@ export function SessionPage() {
             {session.conditionsNote && ` · ${session.conditionsNote}`}
           </div>
         </Card>
+
+        {session.pressures && (
+          <Section title={t('pressures.reading.title')}>
+            <PressureReadingsView value={session.pressures} />
+          </Section>
+        )}
 
         {session.behaviour && <TextBlock title={t('weekend.session.behaviour')}>{session.behaviour}</TextBlock>}
 

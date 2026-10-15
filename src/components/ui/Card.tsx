@@ -34,7 +34,7 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
   return (
     <span
       className={cn(
-        'inline-flex h-6 items-center rounded-full px-2.5 text-[0.72rem] font-semibold',
+        'inline-flex h-6 shrink-0 items-center rounded-full px-2.5 text-[0.72rem] font-semibold whitespace-nowrap',
         tone === 'accent' ? 'bg-accent-soft text-accent-ink' : 'bg-sunken text-ink-2',
       )}
     >
