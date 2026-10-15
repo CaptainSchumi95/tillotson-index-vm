@@ -158,12 +158,14 @@ function Stripes({ d, rnd }: { d: PosterDesign; rnd: () => number }) {
 
 /** Široký oblúk cez celý plagát (ako Spa). */
 function Sweep({ d }: { d: PosterDesign }) {
-  const path = 'M -90 720 C 40 430, 440 500, 340 -80'
+  const path = 'M -90 720 C 40 430, 480 520, 430 -80'
   return (
     <g fill="none" strokeLinecap="butt">
       <path d={path} stroke={d.colors[0]} strokeWidth={190} />
       <path d={path} stroke={d.colors[1]} strokeWidth={70} />
       <path d={path} stroke={d.colors[2]} strokeWidth={10} />
+      {/* Čistý pás pre hlavičku */}
+      <rect width={W} height={52} fill={d.bg} />
     </g>
   )
 }
@@ -209,10 +211,10 @@ function Rings({ d }: { d: PosterDesign }) {
 /** Vlnité zvislé pruhy a šachovnica cieľa (ako Barcelona). */
 function Waves({ d }: { d: PosterDesign }) {
   const paths: ReactNode[] = []
-  for (let i = 0, x = -20; x < W + 40; i++, x += 34) {
+  for (let i = 0, x = -60; x < W + 60; i++, x += 38) {
     let p = `M ${x} 250`
-    for (let y = 250; y < 600; y += 50) p += ` q ${i % 2 ? 22 : -22} 25 0 50`
-    paths.push(<path key={i} d={p} stroke={d.colors[i % 2]} strokeWidth={20} fill="none" />)
+    for (let y = 250, k = 0; y < 600; y += 100, k++) p += ` q ${k % 2 ? 46 : -46} 50 0 100`
+    paths.push(<path key={i} d={p} stroke={d.colors[i % 2]} strokeWidth={22} fill="none" />)
   }
   const squares: ReactNode[] = []
   for (let r = 0; r < 2; r++)

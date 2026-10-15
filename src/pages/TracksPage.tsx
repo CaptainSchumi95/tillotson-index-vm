@@ -110,10 +110,13 @@ export function TracksPage() {
 
   const q = query.trim().toLocaleLowerCase()
   const match = (tr: Track) => !q || `${tr.name} ${tr.location}`.toLocaleLowerCase().includes(q)
-  const list = (tracks.data ?? []).filter(match)
+  const countOf = (id: string) => (setups.data ?? []).filter((s) => s.trackId === id).length
+  const collator = new Intl.Collator('sk', { sensitivity: 'base', numeric: true })
+  const list = (tracks.data ?? [])
+    .filter(match)
+    .sort((a, b) => Number(countOf(b.id) > 0) - Number(countOf(a.id) > 0) || collator.compare(a.name, b.name))
   const ours = list.filter((tr) => tr.teamId)
   const shared = list.filter((tr) => !tr.teamId)
-  const countOf = (id: string) => (setups.data ?? []).filter((s) => s.trackId === id).length
 
   const poster = (tr: Track, i: number) => {
     const count = countOf(tr.id)

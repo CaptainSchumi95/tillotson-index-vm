@@ -61,6 +61,27 @@ const PRESETS: Record<string, Partial<PosterDesign>> = {
   'slovakia ring': { style: 'sweep', bg: '#0a3a8c', colors: ['#ffffff', '#ee1c25', '#0a3a8c'], ink: '#ffffff' },
   'kakucs ring': { style: 'stripes', bg: '#f3eee3', colors: ['#ce2939', '#477050', '#1e2a24'], ink: '#ce2939' },
   'autodrom vysoke myto': { style: 'bolt', bg: '#0e3a6e', colors: ['#d7141a', '#ffffff', '#6fa3dd'], ink: '#ffffff' },
+
+  // Slovensko
+  'motokary dlha': { style: 'ribbon', bg: '#f3eee3', colors: ['#0b4ea2', '#ee1c25', '#1d1d1b'], ink: '#0b4ea2' },
+  'motokary trebatice': { style: 'bolt', bg: '#0b4ea2', colors: ['#ee1c25', '#ffffff', '#0b4ea2'], ink: '#ffffff' },
+  // Česko
+  'steelring trinec': { style: 'rings', bg: '#232b36', colors: ['#d7141a', '#ffffff', '#ff8a1f'], ink: '#ffffff' },
+  'funarena cheb': { style: 'fan', bg: '#11457e', colors: ['#ffffff', '#d7141a', '#ffffff'], ink: '#ffffff' },
+  'motokary pisek-hradiste': { style: 'stripes', bg: '#11457e', colors: ['#d7141a', '#ffffff', '#ffffff'], ink: '#ffffff' },
+  // Maďarsko, Rakúsko, Poľsko
+  'paloc ring': { style: 'sweep', bg: '#3f6347', colors: ['#ffffff', '#ce2939', '#3f6347'], ink: '#ffffff' },
+  'speedworld bruck': { style: 'fan', bg: '#ed2939', colors: ['#ffffff', '#1d1d1b', '#ffffff'], ink: '#ffffff' },
+  'zielona gora': { style: 'stripes', bg: '#dc143c', colors: ['#ffffff', '#1d1d1b', '#ffffff'], ink: '#ffffff' },
+  // Taliansko – každá trať s vlastnou atmosférou
+  'south garda karting': { style: 'rings', bg: '#0e5c8f', colors: ['#ffffff', '#7cc4e8', '#f2b134'], ink: '#ffffff' },
+  'jesolo pista azzurra': { style: 'sweep', bg: '#1b8fd0', colors: ['#ffffff', '#f2b134', '#1b8fd0'], ink: '#ffffff' },
+  franciacorta: { style: 'ribbon', bg: '#5a1a2a', colors: ['#e8c872', '#ffffff', '#a3263a'], ink: '#ffffff' },
+  'nizza monferrato': { style: 'bolt', bg: '#ce2b37', colors: ['#ffffff', '#009246', '#1d1d1b'], ink: '#ffffff' },
+  'ala di trento': { style: 'stripes', bg: '#1d2b3a', colors: ['#ffffff', '#ce2b37', '#009246'], ink: '#ffffff' },
+  '7 laghi kart': { style: 'waves', bg: '#0d4f6c', colors: ['#5fc3e4', '#ffffff', '#f2b134'], ink: '#ffffff' },
+  // Írsko, Británia
+  kiltorcan: { style: 'waves', bg: '#169b62', colors: ['#ffffff', '#ff883e', '#ffffff'], ink: '#ffffff' },
 }
 
 const STYLES: PosterStyle[] = ['stripes', 'sweep', 'bolt', 'rings', 'waves', 'fan', 'ribbon']

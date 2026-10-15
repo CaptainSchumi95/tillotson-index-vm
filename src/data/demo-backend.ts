@@ -218,7 +218,27 @@ function demoEvents(): Pick<DemoDb, 'events' | 'schedule' | 'checklist' | 'check
   }
 }
 
-/** Rovnaké spoločné trate ako v migrácii 0008 + dva setupy tímu pre Slovakia Ring. */
+/** Spoločné trate z migrácií 0008 a 0013 – v ukážke rovnaké ako naostro. */
+const MORE_TRACKS: [string, string, number][] = [
+  ['Motokáry Dlhá', 'Dlhá, SK', 1095],
+  ['Motokáry Trebatice', 'Trebatice, SK', 920],
+  ['Speedworld Bruck', 'Pachfurth, AT', 1120],
+  ['Páloc Ring', 'Balassagyarmat, HU', 1200],
+  ['SteelRing Třinec', 'Třinec, CZ', 1232],
+  ['South Garda Karting', 'Lonato del Garda, IT', 1200],
+  ['Jesolo Pista Azzurra', 'Jesolo, IT', 1045],
+  ['Franciacorta', 'Castrezzato, IT', 1300],
+  ['Nizza Monferrato', 'Nizza Monferrato, IT', 1080],
+  ['Kiltorcan', 'Ballyhale, IE', 1100],
+  ['PFI Karting', 'Brandon, GB', 1382],
+  ['Ala di Trento', 'Ala, IT', 1110],
+  ['7 Laghi Kart', 'Castelletto di Branduzzo, IT', 1256],
+  ['Motokáry Písek-Hradiště', 'Písek, CZ', 1250],
+  ['Zielona Góra', 'Stary Kisielin, PL', 1042],
+  ['Funarena Cheb', 'Cheb, CZ', 1202],
+]
+
+/** Rovnaké spoločné trate ako v migráciách + dva setupy tímu pre Slovakia Ring. */
 function demoTracks(): Pick<DemoDb, 'tracks' | 'trackSetups'> {
   const base = demoSetup().revisions[0].values
   const daysAgo = (d: number) => new Date(Date.now() - d * 86_400_000).toISOString()
@@ -227,6 +247,7 @@ function demoTracks(): Pick<DemoDb, 'tracks' | 'trackSetups'> {
       { id: 'track-sr', teamId: null, name: 'Slovakia Ring', location: 'Orechová Potôň, SK', lengthM: null },
       { id: 'track-kakucs', teamId: null, name: 'Kakucs Ring', location: 'Kakucs, HU', lengthM: null },
       { id: 'track-vm', teamId: null, name: 'Autodrom Vysoké Mýto', location: 'Vysoké Mýto, CZ', lengthM: null },
+      ...MORE_TRACKS.map(([name, location, lengthM], i) => ({ id: `track-x${i}`, teamId: null, name, location, lengthM })),
     ],
     trackSetups: [
       {
@@ -416,7 +437,12 @@ function seed(): DemoDb {
 function load(): DemoDb {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return { ...demoSetup(), ...demoNotesService(), ...demoEvents(), ...withPressures(demoSessions()), ...demoTracks(), ...demoChat(), ...(JSON.parse(raw) as DemoDb) }
+    if (raw) {
+      const db = { ...demoSetup(), ...demoNotesService(), ...demoEvents(), ...withPressures(demoSessions()), ...demoTracks(), ...demoChat(), ...(JSON.parse(raw) as DemoDb) }
+      const known = new Set(db.tracks.map((t) => t.name))
+      db.tracks = [...db.tracks, ...demoTracks().tracks.filter((t) => !known.has(t.name))]
+      return db
+    }
   } catch {
     /* poškodené dáta – začneme odznova */
   }
