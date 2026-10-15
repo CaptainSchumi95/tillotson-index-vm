@@ -82,7 +82,8 @@ interface DemoChannel {
 
 interface DemoDb {
   channels: DemoChannel[]
-  messages: (ChatMessage & { teamId: string })[]
+  messages: (Omit<ChatMessage, 'reactions'> & { teamId: string })[]
+  reactions: { messageId: string; profileId: string; emoji: string }[]
   reads: Record<string, string>
   pressures: Record<string, SessionPressures & { kartId: string }>
   orders: (Omit<PressureOrder, 'createdBy' | 'doneBy'> & { teamId: string; createdById: string; doneById: string | null })[]
@@ -339,11 +340,11 @@ function teamChannels(teamId: string): DemoChannel[] {
 }
 
 /** Vzorové správy: oznam na nástenke, skupina a priama konverzácia s Petrom. */
-function demoChat(): Pick<DemoDb, 'channels' | 'messages' | 'reads'> {
+function demoChat(): Pick<DemoDb, 'channels' | 'messages' | 'reads' | 'reactions'> {
   const teamId = 'team-demo'
   const minAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString()
-  const msg = (id: string, channelId: string, authorId: string, body: string, m: number) => ({
-    id, channelId, teamId, authorId, body, createdAt: minAgo(m),
+  const msg = (id: string, channelId: string, authorId: string, body: string, m: number, replyTo: string | null = null) => ({
+    id, channelId, teamId, authorId, body, createdAt: minAgo(m), replyTo, editedAt: null,
   })
   const dm = 'dm-peter'
   return {
@@ -353,13 +354,18 @@ function demoChat(): Pick<DemoDb, 'channels' | 'messages' | 'reads'> {
     ],
     messages: [
       msg('msg-1', teamId + '-ann', ME, 'Vitajte v aplikácii! Pred každou jazdou prejdite checklist a po jazde zapíšte čas a tlaky.', 60 * 26),
-      msg('msg-2', teamId + '-ann', ME, 'Zajtra zraz o 7:00 pri depe č. 14. Technická prebierka do 8:30.', 60 * 3),
-      msg('msg-3', teamId + '-team', 'p-peter', 'Má niekto náhradnú reťaz 219?', 95),
-      msg('msg-4', teamId + '-team', 'p-adam', 'Ja mám jednu v kufri 👍', 90),
+      msg('msg-2', teamId + '-ann', ME, '# Zajtra zraz o 7:00\nPri depe **č. 14**. Technická prebierka do *8:30*.\n- prilba a kombinéza\n- transpondér nabitý\nHarmonogram: https://tillotson-index-vm.vercel.app', 60 * 3),
+      msg('msg-3', teamId + '-team', 'p-peter', 'Má niekto náhradnú reťaz **219**?', 95),
+      msg('msg-4', teamId + '-team', 'p-adam', 'Ja mám jednu v kufri 👍', 90, 'msg-3'),
       msg('msg-5', teamId + '-team', 'p-peter', 'Super, ďakujem!', 88),
       msg('msg-6', dm, 'p-peter', 'Tlaky na 95 som nastavil podľa inžiniera, pozri prosím ešte napnutie reťaze.', 12),
     ],
     reads: { [teamId + '-ann']: minAgo(60 * 5) },
+    reactions: [
+      { messageId: 'msg-2', profileId: 'p-peter', emoji: '👍' },
+      { messageId: 'msg-2', profileId: 'p-adam', emoji: '👍' },
+      { messageId: 'msg-4', profileId: 'p-peter', emoji: '❤️' },
+    ],
   }
 }
 
@@ -436,7 +442,9 @@ function ensureManager(db: DemoDb, teamId: string) {
 }
 
 export function createDemoBackend(): Backend {
-  const chatListeners = new Map<string, Set<(m: ChatMessage) => void>>()
+  const chatListeners = new Map<string, Set<{ onMessage: (m: ChatMessage) => void; onChange: (channelId: string) => void }>>()
+  const notifyChange = (teamId: string, channelId: string) =>
+    chatListeners.get(teamId)?.forEach((l) => l.onChange(channelId))
   const listeners = new Set<(u: AuthUser | null) => void>()
   const emit = (u: AuthUser | null) => listeners.forEach((cb) => cb(u))
 
@@ -550,6 +558,7 @@ export function createDemoBackend(): Backend {
         db.trackSetups = db.trackSetups.filter((t) => t.teamId !== teamId)
         db.channels = db.channels.filter((c) => c.teamId !== teamId)
         db.messages = db.messages.filter((m) => m.teamId !== teamId)
+        db.reactions = db.reactions.filter((r) => db.messages.some((m) => m.id === r.messageId))
       })
     },
 
@@ -1049,21 +1058,53 @@ export function createDemoBackend(): Backend {
 
     async listMessages(channelId) {
       await delay()
-      return load()
-        .messages.filter((m) => m.channelId === channelId)
+      const db = load()
+      return db.messages
+        .filter((m) => m.channelId === channelId)
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-        .map(({ teamId: _t, ...m }) => m)
+        .map(({ teamId: _t, ...m }) => {
+          const grouped = new Map<string, string[]>()
+          for (const r of db.reactions.filter((x) => x.messageId === m.id))
+            grouped.set(r.emoji, [...(grouped.get(r.emoji) ?? []), r.profileId])
+          return { ...m, reactions: [...grouped].map(([emoji, profileIds]) => ({ emoji, profileIds })) }
+        })
     },
+
+    async editMessage(messageId, body) {
+      await delay()
+      const m = mutate((db) => {
+        const x = db.messages.find((y) => y.id === messageId && y.authorId === ME)
+        if (x) Object.assign(x, { body, editedAt: new Date().toISOString() })
+        return x
+      })
+      if (m) notifyChange(m.teamId, m.channelId)
+    },
+
+    async toggleReaction(messageId, emoji, on) {
+      await delay()
+      const m = mutate((db) => {
+        db.reactions = db.reactions.filter((r) => !(r.messageId === messageId && r.profileId === ME && r.emoji === emoji))
+        if (on) db.reactions.push({ messageId, profileId: ME, emoji })
+        return db.messages.find((x) => x.id === messageId)
+      })
+      if (m) notifyChange(m.teamId, m.channelId)
+    },
+
+    async savePushSubscription() {},
+    async removePushSubscription() {},
 
     async sendMessage(input) {
       await delay()
-      const message = { id: input.id, channelId: input.channelId, authorId: ME, body: input.body, createdAt: new Date().toISOString() }
+      const message = {
+        id: input.id, channelId: input.channelId, authorId: ME, body: input.body,
+        createdAt: new Date().toISOString(), replyTo: input.replyTo, editedAt: null,
+      }
       const added = mutate((db) => {
         if (db.messages.some((m) => m.id === input.id)) return false
         db.messages.push({ ...message, teamId: input.teamId })
         return true
       })
-      if (added) chatListeners.get(input.teamId)?.forEach((cb) => cb(message))
+      if (added) chatListeners.get(input.teamId)?.forEach((l) => l.onMessage({ ...message, reactions: [] }))
     },
 
     async deleteMessage(messageId) {
@@ -1096,11 +1137,12 @@ export function createDemoBackend(): Backend {
       })
     },
 
-    subscribeChat(teamId, onMessage) {
+    subscribeChat(teamId, onMessage, onChange) {
       const set = chatListeners.get(teamId) ?? new Set()
-      set.add(onMessage)
+      const l = { onMessage, onChange }
+      set.add(l)
       chatListeners.set(teamId, set)
-      return () => void set.delete(onMessage)
+      return () => void set.delete(l)
     },
 
     async completePressureOrder(orderId, revision) {

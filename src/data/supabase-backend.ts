@@ -49,7 +49,18 @@ function toPressures(v: Row | Row[] | null | undefined): SessionPressures | null
 const num = (v: unknown) => (v == null ? null : Number(v))
 
 function toMessage(r: Row): ChatMessage {
-  return { id: r.id, channelId: r.channel_id, authorId: r.author_id, body: r.body, createdAt: r.created_at }
+  const grouped = new Map<string, string[]>()
+  for (const x of (r.message_reactions ?? []) as Row[]) grouped.set(x.emoji, [...(grouped.get(x.emoji) ?? []), x.profile_id])
+  return {
+    id: r.id,
+    channelId: r.channel_id,
+    authorId: r.author_id,
+    body: r.body,
+    createdAt: r.created_at,
+    replyTo: r.reply_to ?? null,
+    editedAt: r.edited_at ?? null,
+    reactions: [...grouped].map(([emoji, profileIds]) => ({ emoji, profileIds })),
+  }
 }
 
 function toAuthor(r: Row | null) {
@@ -793,7 +804,7 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
       const rows = must(
         await sb
           .from('messages')
-          .select('id, channel_id, author_id, body, created_at')
+          .select('id, channel_id, author_id, body, created_at, reply_to, edited_at, message_reactions(emoji, profile_id, created_at)')
           .eq('channel_id', channelId)
           .order('created_at', { ascending: false })
           .limit(200),
@@ -806,7 +817,14 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
         await sb
           .from('messages')
           .upsert(
-            { id: input.id, channel_id: input.channelId, team_id: input.teamId, body: input.body, author_id: await uid() },
+            {
+              id: input.id,
+              channel_id: input.channelId,
+              team_id: input.teamId,
+              body: input.body,
+              reply_to: input.replyTo,
+              author_id: await uid(),
+            },
             { onConflict: 'id', ignoreDuplicates: true },
           ),
       )
@@ -814,6 +832,35 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
 
     async deleteMessage(messageId) {
       must(await sb.from('messages').delete().eq('id', messageId))
+    },
+
+    async editMessage(messageId, body) {
+      must(await sb.rpc('edit_message', { p_message: messageId, p_body: body }))
+    },
+
+    async toggleReaction(messageId, emoji, on) {
+      if (on) {
+        must(
+          await sb
+            .from('message_reactions')
+            .upsert({ message_id: messageId, emoji, profile_id: await uid() }, { onConflict: 'message_id,profile_id,emoji', ignoreDuplicates: true }),
+        )
+      } else {
+        must(await sb.from('message_reactions').delete().match({ message_id: messageId, emoji, profile_id: await uid() }))
+      }
+    },
+
+    async savePushSubscription(input) {
+      must(
+        await sb.from('push_subscriptions').upsert(
+          { endpoint: input.endpoint, p256dh: input.p256dh, auth: input.auth, user_agent: input.userAgent, profile_id: await uid() },
+          { onConflict: 'endpoint' },
+        ),
+      )
+    },
+
+    async removePushSubscription(endpoint) {
+      must(await sb.from('push_subscriptions').delete().eq('endpoint', endpoint))
     },
 
     async markRead(channelId) {
@@ -832,13 +879,21 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
       must(await sb.from('channels').update({ post_roles: roleIds, post_profiles: profileIds }).eq('id', channelId))
     },
 
-    subscribeChat(teamId, onMessage) {
+    subscribeChat(teamId, onMessage, onChange) {
+      const filter = `team_id=eq.${teamId}`
       const ch = sb
         .channel(`chat:${teamId}`)
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'messages', filter: `team_id=eq.${teamId}` },
-          (payload) => onMessage(toMessage(payload.new as Row)),
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter }, (payload) =>
+          onMessage(toMessage(payload.new as Row)),
+        )
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter }, (payload) =>
+          onChange((payload.new as Row).channel_id),
+        )
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter }, (payload) =>
+          onChange((payload.old as Row).channel_id),
+        )
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions', filter }, (payload) =>
+          onChange(((payload.new as Row)?.channel_id ?? (payload.old as Row)?.channel_id) as string),
         )
         .subscribe()
       return () => void sb.removeChannel(ch)

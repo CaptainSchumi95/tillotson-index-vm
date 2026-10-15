@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { ContextSheet } from '@/components/ContextSheet'
 import { ChatButton, UnreadBadge } from '@/components/chat/chatHelpers'
 import { useChatLive, useUnreadTotal } from '@/data/chat'
+import { syncPush } from '@/lib/push'
 import { TiMark, TiWordmark, VilimCredit } from '@/components/ui/Brand'
 import { Avatar, KartPlate, TeamBadge } from '@/components/ui/Identity'
 import { FullScreenLoader } from '@/components/ui/Spinner'
@@ -58,16 +59,29 @@ export function AppShell() {
   return <Shell />
 }
 
-/** Otvorená konverzácia – bez spodnej navigácie, pole na písanie je úplne dole. */
-const CONVERSATION = /^\/chat\/[^/]+$/
+/** Prostredie správ – samostatné na celú obrazovku, bez spodnej navigácie. */
+const CHAT = /^\/chat(\/[^/]+)?$/
 
 function Shell() {
   const contextOpen = useUi((s) => s.contextOpen)
   const setContextOpen = useUi((s) => s.setContextOpen)
   const { team } = useCurrentTeam()
-  const inConversation = useRouterState({ select: (s) => CONVERSATION.test(s.location.pathname) })
+  const inConversation = useRouterState({ select: (s) => CHAT.test(s.location.pathname) })
+  const unread = useUnreadTotal(team?.id)
   // Nové správy naživo pre aktuálny tím (odznak pri ikone správ).
   useChatLive(team?.id)
+
+  // Odber notifikácií tohto zariadenia sa pri štarte overí na serveri.
+  useEffect(() => {
+    void syncPush().catch(() => {})
+  }, [])
+
+  // Počet neprečítaných aj na ikone nainštalovanej aplikácie.
+  useEffect(() => {
+    const nav = navigator as Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> }
+    if (unread > 0) void nav.setAppBadge?.(unread).catch(() => {})
+    else void nav.clearAppBadge?.().catch(() => {})
+  }, [unread])
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[280px_1fr]">
       <Sidebar onSwitch={() => setContextOpen(true)} />

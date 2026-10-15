@@ -2,6 +2,7 @@ import type {
   ChatChannel,
   ChatMessage,
   MessageInput,
+  PushSubscriptionInput,
   ChecklistCheck,
   ChecklistItem,
   CheckInput,
@@ -157,11 +158,21 @@ export interface Backend {
   /** Idempotentné (id generuje aplikácia) – bezpečné pri slabom signáli. */
   sendMessage(input: MessageInput): Promise<void>
   deleteMessage(messageId: string): Promise<void>
+  editMessage(messageId: string, body: string): Promise<void>
+  /** Pridá (on) alebo odoberie reakciu. Idempotentné. */
+  toggleReaction(messageId: string, emoji: string, on: boolean): Promise<void>
   markRead(channelId: string): Promise<void>
   /** Priama konverzácia s členom tímu – vytvorí sa iba raz. */
   openDirect(teamId: string, profileId: string): Promise<string>
   /** Kto smie písať na nástenku. */
   updatePosters(channelId: string, roleIds: string[], profileIds: string[]): Promise<void>
-  /** Nové správy v tíme naživo. Vráti funkciu na odhlásenie. */
-  subscribeChat(teamId: string, onMessage: (message: ChatMessage) => void): () => void
+  /**
+   * Zmeny v správach tímu naživo: nová správa (onMessage) alebo iná zmena
+   * v kanáli – úprava, zmazanie, reakcia (onChange). Vráti funkciu na odhlásenie.
+   */
+  subscribeChat(teamId: string, onMessage: (message: ChatMessage) => void, onChange: (channelId: string) => void): () => void
+
+  /** Odber push notifikácií tohto zariadenia. */
+  savePushSubscription(input: PushSubscriptionInput): Promise<void>
+  removePushSubscription(endpoint: string): Promise<void>
 }

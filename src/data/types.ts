@@ -352,12 +352,21 @@ export interface ChatChannel {
   unread: number
 }
 
+export interface ChatReaction {
+  emoji: string
+  profileIds: string[]
+}
+
 export interface ChatMessage {
   id: string
   channelId: string
   authorId: string | null
   body: string
   createdAt: string
+  /** Odpoveď na správu. */
+  replyTo: string | null
+  editedAt: string | null
+  reactions: ChatReaction[]
   /** Ešte neodoslaná (slabý signál). */
   pending?: boolean
 }
@@ -368,4 +377,12 @@ export interface MessageInput {
   channelId: string
   body: string
   createdAt: string
+  replyTo: string | null
+}
+
+export interface PushSubscriptionInput {
+  endpoint: string
+  p256dh: string
+  auth: string
+  userAgent: string
 }

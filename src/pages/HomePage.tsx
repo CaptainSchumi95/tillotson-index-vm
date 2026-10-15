@@ -12,6 +12,7 @@ import { currentEventFor, isActive, nextScheduleItem, useEvents, useSchedule } f
 import { useChecklistProgress } from '@/components/weekend/ChecklistView'
 import { EngineerEntry } from '@/components/pressures/EngineerEntry'
 import { PressureOrderCard } from '@/components/pressures/PressureOrderCard'
+import { PushPrompt } from '@/components/PushPrompt'
 import { lastOilInfo, useHoursFormat } from '@/pages/ServicePage'
 import type { TeamEvent } from '@/data/types'
 import { cn } from '@/lib/cn'
@@ -74,6 +75,8 @@ export function HomePage() {
           <ChevronDown className="size-4" />
         </span>
       </button>
+
+      <PushPrompt />
 
       {can('setup.view') && <PressureOrderCard teamId={team.id} kartId={kart.id} />}
 

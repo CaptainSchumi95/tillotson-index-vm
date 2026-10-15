@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { backend } from '@/data'
 import type { AuthUser } from '@/data/backend'
 import { useWorkspace } from '@/state/workspace'
+import { disablePush } from '@/lib/push'
 
 type AuthState = { status: 'loading' } | { status: 'signedOut' } | { status: 'signedIn'; user: AuthUser }
 
@@ -51,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     state,
     signIn: () => backend.signIn(),
     signOut: async () => {
+      await disablePush().catch(() => {})
       await backend.signOut()
       useWorkspace.getState().reset()
       qc.clear()

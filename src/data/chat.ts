@@ -44,12 +44,19 @@ export function useChatLive(teamId: string | undefined) {
   const qc = useQueryClient()
   useEffect(() => {
     if (!teamId) return
-    return backend.subscribeChat(teamId, (m) => {
-      qc.setQueryData<ChatMessage[]>(ck.messages(m.channelId), (cur) =>
-        cur ? [...cur.filter((x) => x.id !== m.id), m] : cur,
-      )
-      void qc.invalidateQueries({ queryKey: ck.overview(teamId) })
-    })
+    return backend.subscribeChat(
+      teamId,
+      (m) => {
+        qc.setQueryData<ChatMessage[]>(ck.messages(m.channelId), (cur) =>
+          cur ? [...cur.filter((x) => x.id !== m.id), m] : cur,
+        )
+        void qc.invalidateQueries({ queryKey: ck.overview(teamId) })
+      },
+      (channelId) => {
+        void qc.invalidateQueries({ queryKey: ck.messages(channelId) })
+        void qc.invalidateQueries({ queryKey: ck.overview(teamId) })
+      },
+    )
   }, [teamId, qc])
 }
 
@@ -67,6 +74,9 @@ export function useSendMessage() {
         authorId: me?.id ?? null,
         body: input.body,
         createdAt: input.createdAt,
+        replyTo: input.replyTo,
+        editedAt: null,
+        reactions: [],
         pending: true,
       }
       qc.setQueryData<ChatMessage[]>(ck.messages(input.channelId), (cur = []) => [...cur, optimistic])
@@ -116,5 +126,42 @@ export function useUpdatePosters(teamId: string) {
     mutationFn: ({ channelId, roleIds, profileIds }: { channelId: string; roleIds: string[]; profileIds: string[] }) =>
       backend.updatePosters(channelId, roleIds, profileIds),
     onSuccess: () => qc.invalidateQueries({ queryKey: ck.overview(teamId) }),
+  })
+}
+
+/** Úprava vlastnej správy – okamžite v konverzácii. */
+export function useEditMessage(channelId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: string }) => backend.editMessage(id, body),
+    onMutate: ({ id, body }) =>
+      qc.setQueryData<ChatMessage[]>(ck.messages(channelId), (cur) =>
+        cur?.map((m) => (m.id === id ? { ...m, body, editedAt: new Date().toISOString() } : m)),
+      ),
+    onSettled: () => qc.invalidateQueries({ queryKey: ck.messages(channelId) }),
+  })
+}
+
+/** Pridanie / odobratie reakcie – okamžite v konverzácii. */
+export function useToggleReaction(channelId: string) {
+  const qc = useQueryClient()
+  const me = useProfile().data?.id ?? ''
+  return useMutation({
+    mutationFn: ({ messageId, emoji, on }: { messageId: string; emoji: string; on: boolean }) =>
+      backend.toggleReaction(messageId, emoji, on),
+    onMutate: ({ messageId, emoji, on }) =>
+      qc.setQueryData<ChatMessage[]>(ck.messages(channelId), (cur) =>
+        cur?.map((m) => {
+          if (m.id !== messageId) return m
+          const rest = m.reactions.map((r) => (r.emoji === emoji ? { ...r, profileIds: r.profileIds.filter((x) => x !== me) } : r))
+          const withMine = on
+            ? rest.some((r) => r.emoji === emoji)
+              ? rest.map((r) => (r.emoji === emoji ? { ...r, profileIds: [...r.profileIds, me] } : r))
+              : [...rest, { emoji, profileIds: [me] }]
+            : rest
+          return { ...m, reactions: withMine.filter((r) => r.profileIds.length > 0) }
+        }),
+      ),
+    onSettled: () => qc.invalidateQueries({ queryKey: ck.messages(channelId) }),
   })
 }

@@ -227,6 +227,16 @@
   }
 }
 
+@keyframes flash {
+  0%,
+  40% {
+    background-color: var(--accent-soft);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
 @utility animate-rise {
   animation: rise 420ms var(--ease-out-soft) both;
 }

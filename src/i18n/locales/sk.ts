@@ -374,6 +374,28 @@ const sk = {
     effTemp: 'ohrev {{value}}',
   },
 
+  push: {
+    enable: 'Zapnúť upozornenia',
+    later: 'Neskôr',
+    settings: 'Upozornenia',
+    on: { title: 'Upozornenia sú zapnuté', body: 'Dostaneš upozornenie na nové správy aj keď máš aplikáciu zatvorenú.' },
+    off: {
+      title: 'Zapni si upozornenia',
+      body: 'Inak ti môže ujsť oznam na nástenke alebo správa od tímu – napríklad zmena harmonogramu priamo na trati.',
+    },
+    denied: {
+      title: 'Upozornenia máš zablokované',
+      body: 'Povoľ ich v nastaveniach prehliadača alebo telefónu pre túto aplikáciu, inak ti budú unikať správy od tímu.',
+    },
+    'needs-install': {
+      title: 'Pridaj si aplikáciu na plochu',
+      body: 'Na iPhone fungujú upozornenia iba v aplikácii pridanej na plochu. Potom ich tu zapneš jedným ťuknutím.',
+      step1: 'V Safari ťukni na Zdieľať',
+      step2: 'Vyber „Pridať na plochu“',
+    },
+    unsupported: { title: 'Upozornenia nie sú dostupné', body: 'Tento prehliadač upozornenia nepodporuje.' },
+  },
+
   chat: {
     title: 'Správy',
     open: 'Správy',
@@ -404,6 +426,33 @@ const sk = {
     byPerson: 'Konkrétni ľudia',
     alwaysByRole: 'píše podľa roly',
     unknown: 'Bývalý člen',
+    channels: 'Kanály',
+    close: 'Zavrieť správy',
+    reply: 'Odpovedať',
+    copy: 'Kopírovať text',
+    copied: 'Skopírované',
+    edit: 'Upraviť správu',
+    editing: 'Upravuješ správu',
+    replyingTo: 'Odpovedáš: {{name}}',
+    edited: '(upravené)',
+    react: 'Pridať reakciu',
+    more: 'Ďalšie možnosti',
+    moreEmoji: 'Ďalšie emoji',
+    deleted: 'Pôvodná správa bola zmazaná',
+    pickChannel: 'Vyber konverzáciu vľavo',
+    format: {
+      toggle: 'Formátovanie',
+      bold: 'Tučné',
+      italic: 'Kurzíva',
+      underline: 'Podčiarknuté',
+      strike: 'Prečiarknuté',
+      heading: 'Nadpis',
+      quote: 'Citát',
+      list: 'Zoznam',
+      code: 'Kód',
+      spoiler: 'Spoiler',
+      link: 'Odkaz',
+    },
   },
 
   notes: {

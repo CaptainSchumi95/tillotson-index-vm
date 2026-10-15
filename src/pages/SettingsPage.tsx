@@ -17,6 +17,21 @@ import { compressImage } from '@/lib/image'
 import type { ThemeMode } from '@/lib/theme'
 import { DEFAULT_UNITS, UNIT_LABEL, UNIT_OPTIONS, type UnitKind } from '@/lib/units'
 import { useWorkspace } from '@/state/workspace'
+import { PushPrompt, usePushStatus } from '@/components/PushPrompt'
+
+/** Stav upozornení v nastaveniach – zapnuté, alebo výzva čo spraviť. */
+function PushSettings() {
+  const { t } = useTranslation()
+  const [status] = usePushStatus()
+  if (status === 'on' || status === 'unsupported')
+    return (
+      <Card className="p-4">
+        <div className="font-medium">{t(`push.${status}.title`)}</div>
+        <p className="mt-1 text-[0.9rem] text-ink-3">{t(`push.${status}.body`)}</p>
+      </Card>
+    )
+  return <PushPrompt always />
+}
 
 export function SettingsPage() {
   const { t } = useTranslation()
@@ -100,6 +115,10 @@ export function SettingsPage() {
               hint={t('settings.profileHint')}
             />
           </Card>
+        </Section>
+
+        <Section title={t('push.settings')}>
+          <PushSettings />
         </Section>
 
         <Section title={t('settings.units')}>

@@ -116,8 +116,20 @@ const routeTree = rootRoute.addChildren([
   privacyRoute,
   shellRoute.addChildren([
     page('/home', HomePage),
-    page('/chat', ChatPage),
-    page('/chat/$channelId', ChatChannelPage),
+    ...(
+      [
+        ['/chat', ChatPage],
+        ['/chat/$channelId', ChatChannelPage],
+      ] as const
+    ).map(([path, component]) =>
+      createRoute({
+        getParentRoute: () => shellRoute,
+        path,
+        component,
+        // Odkaz z upozornenia nesie tím, ktorému správa patrí.
+        validateSearch: (s: Record<string, unknown>): { team?: string } => (typeof s.team === 'string' ? { team: s.team } : {}),
+      }),
+    ),
     page('/chat/$channelId/settings', ChatSettingsPage),
     page('/notes', NotesPage),
     page('/service', ServicePage),
