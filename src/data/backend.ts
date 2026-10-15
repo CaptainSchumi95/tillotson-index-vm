@@ -4,6 +4,7 @@ import type {
   MessageInput,
   PushSubscriptionInput,
   GifPage,
+  GifItem,
   ChecklistCheck,
   ChecklistItem,
   CheckInput,
@@ -179,4 +180,10 @@ export interface Backend {
 
   /** GIFy – bez hľadaného výrazu populárne. Chyba 'gifs_not_configured' = chýba kľúč na serveri. */
   searchGifs(query: string, page: number): Promise<GifPage>
+
+  /** Obľúbené GIFy prihláseného účtu (vo všetkých tímoch rovnaké), najnovšie prvé. */
+  listGifFavorites(): Promise<GifItem[]>
+  addGifFavorite(gif: GifItem): Promise<void>
+  /** Podľa adresy väčšej verzie GIFu (gif.full.url). */
+  removeGifFavorite(url: string): Promise<void>
 }

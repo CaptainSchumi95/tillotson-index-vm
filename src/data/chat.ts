@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { backend } from '.'
 import { useProfile } from './queries'
-import type { ChatChannel, ChatMessage, MessageInput } from './types'
+import type { ChatChannel, ChatMessage, GifItem, MessageInput } from './types'
 
 export const ck = {
   overview: (teamId: string) => ['chat', 'overview', teamId] as const,
@@ -163,5 +163,32 @@ export function useToggleReaction(channelId: string) {
         }),
       ),
     onSettled: () => qc.invalidateQueries({ queryKey: ck.messages(channelId) }),
+  })
+}
+
+/** Obľúbené GIFy – patria účtu, takže sú rovnaké vo všetkých tímoch. */
+export function useGifFavorites() {
+  const me = useProfile().data?.id
+  return useQuery({
+    queryKey: ['gifFavorites', me ?? ''],
+    queryFn: () => backend.listGifFavorites(),
+    enabled: !!me,
+    staleTime: 60_000,
+  })
+}
+
+export function useToggleGifFavorite() {
+  const qc = useQueryClient()
+  const me = useProfile().data?.id ?? ''
+  const key = ['gifFavorites', me]
+  return useMutation({
+    mutationFn: ({ gif, on }: { gif: GifItem; on: boolean }) =>
+      on ? backend.addGifFavorite(gif) : backend.removeGifFavorite(gif.full.url),
+    onMutate: ({ gif, on }) =>
+      qc.setQueryData<GifItem[]>(key, (cur) => {
+        const rest = (cur ?? []).filter((g) => g.full.url !== gif.full.url)
+        return on ? [gif, ...rest] : rest
+      }),
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
   })
 }

@@ -6,6 +6,7 @@ import {
   type ChatChannel,
   type ChatMessage,
   type GifPage,
+  type GifItem,
   type ChecklistCheck,
   type ChecklistItem,
   type CustomSetupField,
@@ -871,6 +872,45 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
         throw new Error(status === 503 ? 'gifs_not_configured' : 'gifs_failed')
       }
       return { items: data?.items ?? [], hasNext: !!data?.hasNext }
+    },
+
+    async listGifFavorites() {
+      const rows = must(
+        await sb
+          .from('gif_favorites')
+          .select('url, w, h, preview_url, preview_w, preview_h, title')
+          .order('created_at', { ascending: false }),
+      )
+      return (rows ?? []).map(
+        (r): GifItem => ({
+          id: r.url,
+          title: r.title,
+          preview: { url: r.preview_url, w: r.preview_w, h: r.preview_h },
+          full: { url: r.url, w: r.w, h: r.h },
+        }),
+      )
+    },
+
+    async addGifFavorite(gif) {
+      must(
+        await sb.from('gif_favorites').upsert(
+          {
+            profile_id: await uid(),
+            url: gif.full.url,
+            w: gif.full.w,
+            h: gif.full.h,
+            preview_url: gif.preview.url,
+            preview_w: gif.preview.w,
+            preview_h: gif.preview.h,
+            title: gif.title.slice(0, 200),
+          },
+          { onConflict: 'profile_id,url', ignoreDuplicates: true },
+        ),
+      )
+    },
+
+    async removeGifFavorite(url) {
+      must(await sb.from('gif_favorites').delete().match({ profile_id: await uid(), url }))
     },
 
     async markRead(channelId) {

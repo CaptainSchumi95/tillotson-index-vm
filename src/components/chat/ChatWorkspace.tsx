@@ -9,9 +9,11 @@ import {
   useChatOverview,
   useDeleteMessage,
   useEditMessage,
+  useGifFavorites,
   useMarkRead,
   useMessages,
   useSendMessage,
+  useToggleGifFavorite,
   useToggleReaction,
 } from '@/data/chat'
 import { useCan, useCurrentTeam, useProfile } from '@/data/queries'
@@ -143,6 +145,9 @@ function Conversation({ channelId, teamId }: { channelId: string; teamId: string
   const react = useToggleReaction(channelId)
   const markRead = useMarkRead(teamId)
   const del = useDeleteMessage(teamId, channelId)
+  const gifFavorites = useGifFavorites()
+  const toggleGifFavorite = useToggleGifFavorite()
+  const favUrls = useMemo(() => new Set((gifFavorites.data ?? []).map((g) => g.full.url)), [gifFavorites.data])
   const info = useChannelInfo()
   const scroller = useRef<HTMLDivElement>(null)
   const composer = useRef<ComposerHandle>(null)
@@ -193,6 +198,17 @@ function Conversation({ channelId, teamId }: { channelId: string; teamId: string
     if (m.pending) return
     const on = !m.reactions.find((r) => r.emoji === emoji)?.profileIds.includes(myId)
     react.mutate({ messageId: m.id, emoji, on })
+  }
+
+  /** GIF zo správy do / z obľúbených (náhľad = tá istá verzia). */
+  const favoriteGif = (m: ChatMessage) => {
+    const file = parseGif(m.body)
+    if (!file) return
+    toggleGifFavorite.mutate({ gif: { id: file.url, title: '', preview: file, full: file }, on: !favUrls.has(file.url) })
+  }
+  const gifFavoriteOf = (m: ChatMessage | null) => {
+    const file = m ? parseGif(m.body) : null
+    return file ? favUrls.has(file.url) : null
   }
 
   const startReply = (m: ChatMessage) => {
@@ -312,6 +328,8 @@ function Conversation({ channelId, teamId }: { channelId: string; teamId: string
                 onReply={startReply}
                 onJump={jump}
                 memberName={(id) => nameOf(id)}
+                gifFavorite={!!gifFavoriteOf(m)}
+                onToggleGifFavorite={favoriteGif}
               />
             </div>
           )
@@ -343,6 +361,8 @@ function Conversation({ channelId, teamId }: { channelId: string; teamId: string
         message={actionsFor}
         canEdit={!!actionsFor && actionsFor.authorId === myId && channel.canPost && !parseGif(actionsFor.body)}
         canDelete={!!actionsFor && canDelete(actionsFor)}
+        gifFavorite={gifFavoriteOf(actionsFor)}
+        onToggleGifFavorite={() => actionsFor && favoriteGif(actionsFor)}
         myReactions={actionsFor?.reactions.filter((r) => r.profileIds.includes(myId)).map((r) => r.emoji) ?? []}
         onClose={() => setActionsFor(null)}
         onReact={(emoji) => actionsFor && toggleReact(actionsFor, emoji)}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Copy, CornerUpLeft, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Check, Copy, CornerUpLeft, Pencil, Plus, Star, StarOff, Trash2 } from 'lucide-react'
 import { Drawer } from 'vaul'
 import { useTranslation } from 'react-i18next'
 import type { ChatMessage } from '@/data/types'
@@ -17,6 +17,8 @@ export function MessageActions({
   message,
   canEdit,
   canDelete,
+  gifFavorite,
+  onToggleGifFavorite,
   myReactions,
   onClose,
   onReact,
@@ -27,6 +29,9 @@ export function MessageActions({
   message: ChatMessage | null
   canEdit: boolean
   canDelete: boolean
+  /** null = správa nie je GIF. */
+  gifFavorite: boolean | null
+  onToggleGifFavorite: () => void
   myReactions: string[]
   onClose: () => void
   onReact: (emoji: string) => void
@@ -114,15 +119,25 @@ export function MessageActions({
                   onReply()
                   close()
                 })}
-                {action(
-                  copied ? <Check className="size-5 text-success" /> : <Copy className="size-5" />,
-                  copied ? t('chat.copied') : t('chat.copy'),
-                  () => {
-                    void navigator.clipboard?.writeText(message.body)
-                    setCopied(true)
-                    setTimeout(close, 500)
-                  },
-                )}
+                {gifFavorite !== null &&
+                  action(
+                    gifFavorite ? <StarOff className="size-5" /> : <Star className="size-5" />,
+                    gifFavorite ? t('chat.gif.removeFavorite') : t('chat.gif.addFavorite'),
+                    () => {
+                      onToggleGifFavorite()
+                      close()
+                    },
+                  )}
+                {gifFavorite === null &&
+                  action(
+                    copied ? <Check className="size-5 text-success" /> : <Copy className="size-5" />,
+                    copied ? t('chat.copied') : t('chat.copy'),
+                    () => {
+                      void navigator.clipboard?.writeText(message.body)
+                      setCopied(true)
+                      setTimeout(close, 500)
+                    },
+                  )}
                 {canEdit &&
                   action(<Pencil className="size-5" />, t('chat.edit'), () => {
                     onEdit()

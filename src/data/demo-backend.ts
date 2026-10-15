@@ -8,6 +8,7 @@ import type { AuthUser, Backend } from './backend'
 import {
   PERMISSIONS,
   type ChatKind,
+  type GifItem,
   type ChatMessage,
   type ChecklistItem,
   type CustomSetupField,
@@ -85,6 +86,7 @@ interface DemoDb {
   messages: (Omit<ChatMessage, 'reactions'> & { teamId: string })[]
   reactions: { messageId: string; profileId: string; emoji: string }[]
   reads: Record<string, string>
+  gifFavorites?: GifItem[]
   pressures: Record<string, SessionPressures & { kartId: string }>
   orders: (Omit<PressureOrder, 'createdBy' | 'doneBy'> & { teamId: string; createdById: string; doneById: string | null })[]
   tracks: Track[]
@@ -1109,6 +1111,26 @@ export function createDemoBackend(): Backend {
         return { id: `demo-${n}`, title: `${label} ${n}`, preview: file, full: file }
       })
       return { items, hasNext: page < 3 }
+    },
+
+    async listGifFavorites() {
+      await delay()
+      return load().gifFavorites ?? []
+    },
+
+    async addGifFavorite(gif) {
+      await delay()
+      mutate((db) => {
+        const rest = (db.gifFavorites ?? []).filter((g) => g.full.url !== gif.full.url)
+        db.gifFavorites = [gif, ...rest]
+      })
+    },
+
+    async removeGifFavorite(url) {
+      await delay()
+      mutate((db) => {
+        db.gifFavorites = (db.gifFavorites ?? []).filter((g) => g.full.url !== url)
+      })
     },
 
     async sendMessage(input) {

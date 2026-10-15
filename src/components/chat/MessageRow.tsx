@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react'
-import { CornerUpLeft, MoreHorizontal, SmilePlus } from 'lucide-react'
+import { CornerUpLeft, MoreHorizontal, SmilePlus, Star } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useRoleName } from '@/components/team/pickers'
 import { Avatar } from '@/components/ui/Identity'
@@ -33,6 +33,8 @@ export function MessageRow({
   onReply,
   onJump,
   memberName,
+  gifFavorite,
+  onToggleGifFavorite,
 }: {
   message: ChatMessage
   author: Member | undefined
@@ -48,6 +50,8 @@ export function MessageRow({
   onReply: (m: ChatMessage) => void
   onJump: (id: string) => void
   memberName: (profileId: string) => string
+  gifFavorite: boolean
+  onToggleGifFavorite: (m: ChatMessage) => void
 }) {
   const { t, i18n } = useTranslation()
   const press = useRef<{ timer: number; x: number; y: number; fired: boolean } | null>(null)
@@ -220,14 +224,35 @@ export function MessageRow({
               </div>
             )}
             {gif ? (
-              <img
-                src={gif.url}
-                alt="GIF"
-                loading="lazy"
-                draggable={false}
-                className="mt-1 block w-[min(100%,260px)] rounded-[14px] bg-(--chat-field) object-cover"
-                style={{ aspectRatio: gif.w && gif.h ? `${gif.w} / ${gif.h}` : undefined }}
-              />
+              <span className="group/gif relative mt-1 block w-[min(100%,260px)]">
+                <img
+                  src={gif.url}
+                  alt="GIF"
+                  loading="lazy"
+                  draggable={false}
+                  className="block w-full rounded-[14px] bg-(--chat-field) object-cover"
+                  style={{ aspectRatio: gif.w && gif.h ? `${gif.w} / ${gif.h}` : undefined }}
+                />
+                {!message.pending && (
+                  <button
+                    type="button"
+                    aria-label={gifFavorite ? t('chat.gif.removeFavorite') : t('chat.gif.addFavorite')}
+                    title={gifFavorite ? t('chat.gif.removeFavorite') : t('chat.gif.addFavorite')}
+                    aria-pressed={gifFavorite}
+                    onPointerUp={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onToggleGifFavorite(message)
+                    }}
+                    className={cn(
+                      'absolute top-2 right-2 grid size-8 place-items-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-opacity pointer-coarse:hidden',
+                      gifFavorite ? 'opacity-100' : 'opacity-0 group-hover/gif:opacity-100',
+                    )}
+                  >
+                    <Star className={cn('size-4', gifFavorite && 'fill-[#ffc53d] text-[#ffc53d]')} />
+                  </button>
+                )}
+              </span>
             ) : (
               <div className="leading-relaxed text-ink">
                 <Markdown text={message.body} />
