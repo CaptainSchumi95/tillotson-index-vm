@@ -15,6 +15,14 @@ for (const [size, out] of [
 ]) {
   await sharp(icon).resize(size, size).png().toFile(`public/${out}`)
 }
+// Malá ikona upozornení (stavový riadok Androidu) – systém z nej berie iba priehľadnosť,
+// preto biele „IDX“ na priehľadnom pozadí. Maska = svetlé písmená z modrej ikony.
+const glyph = await sharp(icon).extract({ left: 160, top: 160, width: 760, height: 760 }).resize(96, 96)
+const alpha = await glyph.clone().extractChannel('red').linear(255 / 60, (-80 * 255) / 60).toBuffer()
+await sharp({ create: { width: 96, height: 96, channels: 3, background: '#ffffff' } })
+  .joinChannel(alpha)
+  .png()
+  .toFile('public/badge-96.png')
 await sharp(`${SRC}/tillotson index icon - rounded.png`).resize(48, 48).png().toFile('public/favicon.png')
 
 // Logá do aplikácie – orezané o prázdny okraj.
