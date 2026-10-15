@@ -1093,6 +1093,24 @@ export function createDemoBackend(): Backend {
     async savePushSubscription() {},
     async removePushSubscription() {},
 
+    // Ukážka nemá prístup ku KLIPY – farebné zástupné „GIFy“.
+    async searchGifs(query, page) {
+      await delay()
+      const colors = ['#2460fc', '#e5484d', '#30a46c', '#f76b15', '#8e4ec6', '#0090ff', '#ffb224', '#12a594']
+      const label = query || 'GIF'
+      const items = Array.from({ length: 12 }, (_, i) => {
+        const n = (page - 1) * 12 + i + 1
+        const h = [150, 200, 120, 180][n % 4]
+        const svg =
+          `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="${h}" viewBox="0 0 200 ${h}">` +
+          `<rect width="200" height="${h}" fill="${colors[n % colors.length]}"/>` +
+          `<text x="100" y="${h / 2 + 8}" font-family="sans-serif" font-size="22" font-weight="700" fill="#fff" text-anchor="middle">${label} ${n}</text></svg>`
+        const file = { url: 'data:image/svg+xml,' + encodeURIComponent(svg), w: 200, h }
+        return { id: `demo-${n}`, title: `${label} ${n}`, preview: file, full: file }
+      })
+      return { items, hasNext: page < 3 }
+    },
+
     async sendMessage(input) {
       await delay()
       const message = {

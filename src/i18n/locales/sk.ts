@@ -440,6 +440,17 @@ const sk = {
     moreEmoji: 'Ďalšie emoji',
     deleted: 'Pôvodná správa bola zmazaná',
     pickChannel: 'Vyber konverzáciu vľavo',
+    gif: {
+      button: 'Poslať GIF',
+      title: 'GIF',
+      search: 'Hľadať GIF…',
+      trending: 'Populárne',
+      results: 'Výsledky: {{q}}',
+      empty: 'Nič sme nenašli – skús iné slovo.',
+      error: 'GIFy sa nepodarilo načítať. Skús to o chvíľu.',
+      notConfigured: 'GIFy ešte nie sú zapnuté – správca ich musí nastaviť.',
+      poweredBy: 'Powered by KLIPY',
+    },
     format: {
       toggle: 'Formátovanie',
       bold: 'Tučné',

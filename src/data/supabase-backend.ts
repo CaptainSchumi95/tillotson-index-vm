@@ -5,6 +5,7 @@ import {
   KNOWN_ERRORS,
   type ChatChannel,
   type ChatMessage,
+  type GifPage,
   type ChecklistCheck,
   type ChecklistItem,
   type CustomSetupField,
@@ -861,6 +862,15 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
 
     async removePushSubscription(endpoint) {
       must(await sb.from('push_subscriptions').delete().eq('endpoint', endpoint))
+    },
+
+    async searchGifs(query, page) {
+      const { data, error } = await sb.functions.invoke<GifPage>('gifs', { body: { q: query, page } })
+      if (error) {
+        const status = (error as { context?: Response }).context?.status
+        throw new Error(status === 503 ? 'gifs_not_configured' : 'gifs_failed')
+      }
+      return { items: data?.items ?? [], hasNext: !!data?.hasNext }
     },
 
     async markRead(channelId) {

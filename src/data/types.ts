@@ -380,6 +380,25 @@ export interface MessageInput {
   replyTo: string | null
 }
 
+/** GIF z KLIPY – náhľad do výberu a väčšia verzia do správy. */
+export interface GifFile {
+  url: string
+  w: number
+  h: number
+}
+
+export interface GifItem {
+  id: string
+  title: string
+  preview: GifFile
+  full: GifFile
+}
+
+export interface GifPage {
+  items: GifItem[]
+  hasNext: boolean
+}
+
 export interface PushSubscriptionInput {
   endpoint: string
   p256dh: string

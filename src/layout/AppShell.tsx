@@ -59,14 +59,18 @@ export function AppShell() {
   return <Shell />
 }
 
-/** Prostredie správ – samostatné na celú obrazovku, bez spodnej navigácie. */
+/** Prostredie správ – samostatné na celú obrazovku. */
 const CHAT = /^\/chat(\/[^/]+)?$/
+/** Otvorená konverzácia – bez spodnej navigácie, pole na písanie je úplne dole. */
+const CONVERSATION = /^\/chat\/[^/]+$/
 
 function Shell() {
   const contextOpen = useUi((s) => s.contextOpen)
   const setContextOpen = useUi((s) => s.setContextOpen)
   const { team } = useCurrentTeam()
-  const inConversation = useRouterState({ select: (s) => CHAT.test(s.location.pathname) })
+  const path = useRouterState({ select: (s) => s.location.pathname })
+  const inChat = CHAT.test(path)
+  const inConversation = CONVERSATION.test(path)
   const unread = useUnreadTotal(team?.id)
   // Nové správy naživo pre aktuálny tím (odznak pri ikone správ).
   useChatLive(team?.id)
@@ -90,13 +94,13 @@ function Shell() {
         <main
           className={cn(
             'mx-auto w-full max-w-[880px] px-4 pt-3 sm:px-6 lg:px-10',
-            inConversation ? 'pb-0 lg:pt-0' : 'pb-[calc(96px+env(safe-area-inset-bottom))] lg:pt-8 lg:pb-16',
+            inChat ? 'pb-0 lg:pt-0' : 'pb-[calc(96px+env(safe-area-inset-bottom))] lg:pt-8 lg:pb-16',
           )}
         >
           <Outlet />
         </main>
       </div>
-      {!inConversation && <BottomNav />}
+      {!inConversation && <BottomNav chat={inChat} />}
       <StatusToasts />
       <ContextSheet open={contextOpen} onOpenChange={setContextOpen} />
     </div>
@@ -199,10 +203,16 @@ function Sidebar({ onSwitch }: { onSwitch: () => void }) {
   )
 }
 
-function BottomNav() {
+function BottomNav({ chat }: { chat?: boolean }) {
   const { t } = useTranslation()
   return (
-    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/92 backdrop-blur-xl lg:hidden">
+    <nav
+      className={cn(
+        'safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-line backdrop-blur-xl lg:hidden',
+        // V správach splýva s tmavším prostredím chatu.
+        chat ? 'bg-bg/95' : 'bg-surface/92',
+      )}
+    >
       <div className="mx-auto grid h-[68px] max-w-[560px] grid-cols-5 px-1">
         {NAV.map(({ to, key, icon: Icon }) => (
           <Link key={to} to={to} className="group flex flex-col items-center justify-center gap-1 text-ink-3">

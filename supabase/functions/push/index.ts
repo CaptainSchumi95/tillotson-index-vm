@@ -18,6 +18,7 @@ webpush.setVapidDetails(
 
 /** Text bez formátovacích značiek (do upozornenia). */
 function plain(text: string) {
+  if (/^https:\/\/static\.klipy\.com\/\S+$/.test(text.trim())) return 'GIF'
   return text
     .replace(/```[\s\S]*?```/g, '[kód]')
     .replace(/^(#{1,3}|-#|>)\s+/gm, '')

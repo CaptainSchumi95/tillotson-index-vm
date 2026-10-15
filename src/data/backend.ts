@@ -3,6 +3,7 @@ import type {
   ChatMessage,
   MessageInput,
   PushSubscriptionInput,
+  GifPage,
   ChecklistCheck,
   ChecklistItem,
   CheckInput,
@@ -175,4 +176,7 @@ export interface Backend {
   /** Odber push notifikácií tohto zariadenia. */
   savePushSubscription(input: PushSubscriptionInput): Promise<void>
   removePushSubscription(endpoint: string): Promise<void>
+
+  /** GIFy – bez hľadaného výrazu populárne. Chyba 'gifs_not_configured' = chýba kľúč na serveri. */
+  searchGifs(query: string, page: number): Promise<GifPage>
 }

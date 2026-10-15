@@ -28,7 +28,8 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#f2f3f5',
+        // Android touto farbou vypĺňa okno pod aplikáciou (pás pri gestách) – tmavá splynie s tmavým režimom.
+        background_color: '#0a0e16',
         theme_color: '#1d56e9',
         icons: [
           { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },

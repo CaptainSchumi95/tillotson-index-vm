@@ -18,6 +18,8 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/cn'
+import { gifBody } from '@/lib/gif'
+import { GifPicker } from './GifPicker'
 import { plainText } from './Markdown'
 
 export interface ComposerHandle {
@@ -43,6 +45,7 @@ export const Composer = forwardRef<
   const input = useRef<HTMLTextAreaElement>(null)
   const [text, setText] = useState('')
   const [formatting, setFormatting] = useState(false)
+  const [gifs, setGifs] = useState(false)
 
   useImperativeHandle(ref, () => ({
     focus: () => input.current?.focus(),
@@ -137,7 +140,11 @@ export const Composer = forwardRef<
     <div className="space-y-2">
       {context && (
         <div className="flex items-center gap-2 rounded-[12px] bg-(--chat-field) px-3 py-2 text-[0.85rem]">
-          {editing ? <Pencil className="size-4 shrink-0 text-accent-ink" /> : <CornerUpLeft className="size-4 shrink-0 text-accent-ink" />}
+          {editing ? (
+            <Pencil className="size-4 shrink-0 text-accent-ink" />
+          ) : (
+            <CornerUpLeft className="size-4 shrink-0 text-accent-ink" />
+          )}
           <span className="min-w-0 flex-1 truncate text-ink-2">
             {editing ? (
               <span className="font-semibold text-ink">{t('chat.editing')}</span>
@@ -193,27 +200,44 @@ export const Composer = forwardRef<
         >
           <Type className="size-5" />
         </button>
-        <textarea
-          ref={input}
-          rows={1}
-          value={text}
-          enterKeyHint="send"
-          onChange={(e) => setText(e.target.value.slice(0, 4000))}
-          onKeyDown={(e) => {
-            // Na počítači Enter odošle, Shift+Enter nový riadok. Esc zruší odpoveď / úpravu.
-            if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(pointer: fine)').matches) {
-              e.preventDefault()
-              submit()
-            }
-            if (e.key === 'Escape' && context) {
-              onCancelContext()
-              if (editing) setText('')
-            }
-          }}
-          placeholder={placeholder}
-          aria-label={placeholder}
-          className="max-h-[160px] min-h-[48px] flex-1 resize-none rounded-[24px] border border-transparent bg-(--chat-field) px-4 py-3 leading-snug outline-none transition-colors placeholder:text-ink-3 focus:border-line-strong"
-        />
+        <div className="relative flex min-w-0 flex-1">
+          <textarea
+            ref={input}
+            rows={1}
+            value={text}
+            enterKeyHint="send"
+            onChange={(e) => setText(e.target.value.slice(0, 4000))}
+            onKeyDown={(e) => {
+              // Na počítači Enter odošle, Shift+Enter nový riadok. Esc zruší odpoveď / úpravu.
+              if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(pointer: fine)').matches) {
+                e.preventDefault()
+                submit()
+              }
+              if (e.key === 'Escape' && context) {
+                onCancelContext()
+                if (editing) setText('')
+              }
+            }}
+            placeholder={placeholder}
+            aria-label={placeholder}
+            className={cn(
+              'max-h-[160px] min-h-[48px] flex-1 resize-none rounded-[24px] border border-transparent bg-(--chat-field) py-3 pl-4 leading-snug outline-none transition-colors placeholder:text-ink-3 focus:border-line-strong',
+              editing ? 'pr-4' : 'pr-14',
+            )}
+          />
+          {!editing && (
+            <button
+              type="button"
+              aria-label={t('chat.gif.button')}
+              title={t('chat.gif.button')}
+              onPointerDown={keep}
+              onClick={() => setGifs(true)}
+              className="display absolute right-2 bottom-2 grid h-8 min-w-10 place-items-center rounded-[9px] border-2 border-ink-3 px-1 text-[0.72rem] leading-none text-ink-2 transition-colors hover:border-ink-2 hover:text-ink"
+            >
+              GIF
+            </button>
+          )}
+        </div>
         <button
           type="button"
           onPointerDown={keep}
@@ -225,6 +249,14 @@ export const Composer = forwardRef<
           {editing ? <Pencil className="size-5" /> : <ArrowUp className="size-6" strokeWidth={2.5} />}
         </button>
       </div>
+      <GifPicker
+        open={gifs}
+        onOpenChange={setGifs}
+        onPick={(g) => {
+          setGifs(false)
+          onSend(gifBody(g.full))
+        }}
+      />
     </div>
   )
 })

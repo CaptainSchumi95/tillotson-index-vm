@@ -8,6 +8,7 @@
 
 import { useState, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
+import { parseGif } from '@/lib/gif'
 
 type Rule = { re: RegExp; render: (m: RegExpExecArray, key: string) => ReactNode }
 
@@ -198,6 +199,7 @@ export function Markdown({ text }: { text: string }) {
 
 /** Text bez formátovacích značiek – pre náhľad v zozname a citát odpovede. */
 export function plainText(text: string) {
+  if (parseGif(text)) return 'GIF'
   return text
     .replace(/```[\s\S]*?```/g, '[kód]')
     .replace(/^(#{1,3}|-#|>>>|>)\s+/gm, '')

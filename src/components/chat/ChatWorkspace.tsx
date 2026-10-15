@@ -17,6 +17,7 @@ import {
 import { useCan, useCurrentTeam, useProfile } from '@/data/queries'
 import type { ChatMessage } from '@/data/types'
 import { cn } from '@/lib/cn'
+import { parseGif } from '@/lib/gif'
 import { useWorkspace } from '@/state/workspace'
 import { ChannelList } from './ChannelList'
 import { useChannelInfo } from './chatHelpers'
@@ -82,8 +83,12 @@ export function ChatWorkspace({ activeId }: { activeId: string | null }) {
 
   return (
     <div
-      className="chat-env fixed inset-x-0 z-40 flex bg-(--chat-main) text-ink lg:left-[280px]"
-      style={{ top: vv.top, bottom: vv.bottom }}
+      className={cn(
+        'chat-env fixed inset-x-0 z-40 flex bg-(--chat-main) text-ink lg:left-[280px]',
+        // Zoznam konverzácií necháva miesto spodnej lište (mobil).
+        !activeId && 'bottom-[calc(68px+env(safe-area-inset-bottom))] lg:bottom-0',
+      )}
+      style={{ top: vv.top, bottom: activeId ? vv.bottom : undefined }}
     >
       {/* Zoznam konverzácií */}
       <aside
@@ -191,6 +196,7 @@ function Conversation({ channelId, teamId }: { channelId: string; teamId: string
   }
 
   const startReply = (m: ChatMessage) => {
+    if (!channel.canPost) return
     setEditing(null)
     setReplyTo(m)
     composer.current?.focus()
@@ -269,7 +275,7 @@ function Conversation({ channelId, teamId }: { channelId: string; teamId: string
           const el = e.currentTarget
           pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
         }}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-4 lg:px-6"
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pt-2 pb-4 lg:px-6"
       >
         {!messages.isPending && list.length === 0 && (
           <p className="py-16 text-center text-ink-3">{isBoard ? t('chat.noMessagesAnnouncements') : t('chat.noMessages')}</p>
@@ -335,7 +341,7 @@ function Conversation({ channelId, teamId }: { channelId: string; teamId: string
 
       <MessageActions
         message={actionsFor}
-        canEdit={!!actionsFor && actionsFor.authorId === myId && channel.canPost}
+        canEdit={!!actionsFor && actionsFor.authorId === myId && channel.canPost && !parseGif(actionsFor.body)}
         canDelete={!!actionsFor && canDelete(actionsFor)}
         myReactions={actionsFor?.reactions.filter((r) => r.profileIds.includes(myId)).map((r) => r.emoji) ?? []}
         onClose={() => setActionsFor(null)}
