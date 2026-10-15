@@ -121,6 +121,7 @@
 
 @layer base {
   html {
+    background: var(--bg);
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
     text-rendering: optimizeLegibility;
@@ -224,6 +225,44 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* ───────────── Prostredie správ ─────────────
+   Vlastná, tmavšia paleta – aby bolo jasné, že sme v chate. */
+
+.chat-env {
+  --chat-list: var(--surface-2);
+  --chat-main: var(--surface);
+  --chat-field: #f0f2f5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .chat-env {
+    --chat-list: #0a0e16;
+    --chat-main: #0a0e16;
+    --chat-field: #151b26;
+    --sunken: #121822;
+    --line: #181f2a;
+    --line-strong: #262e3b;
+  }
+}
+@media (prefers-color-scheme: dark) and (min-width: 1024px) {
+  :root:not([data-theme='light']) .chat-env {
+    --chat-main: #0d121a;
+  }
+}
+:root[data-theme='dark'] .chat-env {
+  --chat-list: #0a0e16;
+  --chat-main: #0a0e16;
+  --chat-field: #151b26;
+  --sunken: #121822;
+  --line: #181f2a;
+  --line-strong: #262e3b;
+}
+@media (min-width: 1024px) {
+  :root[data-theme='dark'] .chat-env {
+    --chat-main: #0d121a;
   }
 }
 

@@ -136,7 +136,7 @@ export const Composer = forwardRef<
   return (
     <div className="space-y-2">
       {context && (
-        <div className="flex items-center gap-2 rounded-[12px] bg-sunken px-3 py-2 text-[0.85rem]">
+        <div className="flex items-center gap-2 rounded-[12px] bg-(--chat-field) px-3 py-2 text-[0.85rem]">
           {editing ? <Pencil className="size-4 shrink-0 text-accent-ink" /> : <CornerUpLeft className="size-4 shrink-0 text-accent-ink" />}
           <span className="min-w-0 flex-1 truncate text-ink-2">
             {editing ? (
@@ -212,7 +212,7 @@ export const Composer = forwardRef<
           }}
           placeholder={placeholder}
           aria-label={placeholder}
-          className="max-h-[160px] min-h-[48px] flex-1 resize-none rounded-[24px] border border-line-strong bg-surface-2 px-4 py-3 leading-snug outline-none placeholder:text-ink-3 focus:border-accent focus:bg-surface"
+          className="max-h-[160px] min-h-[48px] flex-1 resize-none rounded-[24px] border border-transparent bg-(--chat-field) px-4 py-3 leading-snug outline-none transition-colors placeholder:text-ink-3 focus:border-line-strong"
         />
         <button
           type="button"
@@ -220,7 +220,7 @@ export const Composer = forwardRef<
           onClick={submit}
           disabled={!text.trim()}
           aria-label={t('chat.send')}
-          className="grid size-12 shrink-0 place-items-center rounded-full bg-accent text-on-accent transition-[opacity,transform] active:scale-95 disabled:opacity-35"
+          className="grid size-12 shrink-0 place-items-center rounded-full bg-accent text-on-accent transition-[background-color,color,transform] active:scale-95 disabled:bg-(--chat-field) disabled:text-ink-3"
         >
           {editing ? <Pencil className="size-5" /> : <ArrowUp className="size-6" strokeWidth={2.5} />}
         </button>

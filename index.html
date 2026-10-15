@@ -4,6 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#f2f4f7" />
+    <style>
+      html { background: #f2f4f7; }
+      @media (prefers-color-scheme: dark) { html:not([data-theme='light']) { background: #0a0e16; } }
+      html[data-theme='dark'] { background: #0a0e16; }
+    </style>
+    <script>
+      // Téma ešte pred načítaním aplikácie – inak Android na chvíľu ukáže svetlé pozadie.
+      try {
+        var mode = (JSON.parse(localStorage.getItem('ti-workspace') || '{}').state || {}).theme
+        if (mode === 'light' || mode === 'dark') document.documentElement.dataset.theme = mode
+        var dark = mode === 'dark' || (mode !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#0a0e16' : '#f2f4f7')
+      } catch (e) {}
+    </script>
     <meta name="description" content="Tímová aplikácia pre prípravu motokár a pretekové víkendy. Vyvinul Vilim Motorsport." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />

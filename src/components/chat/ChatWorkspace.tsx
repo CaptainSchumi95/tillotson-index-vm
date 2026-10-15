@@ -26,18 +26,29 @@ import { MessageRow } from './MessageRow'
 
 const GROUP_MS = 7 * 60_000
 
-/** Výška viditeľnej časti obrazovky – na mobile sa zmenší o klávesnicu. */
+/**
+ * Viditeľná časť obrazovky. Android sa pri klávesnici zmenší sám (interactive-widget),
+ * iPhone klávesnicu len prekryje – vtedy odsadíme spodok o jej výšku.
+ * Prostredie tak siaha vždy až po spodný okraj (bez pásu pod ním).
+ */
+function readViewport() {
+  const v = window.visualViewport
+  if (!v) return { top: 0, bottom: 0 }
+  return { top: v.offsetTop, bottom: Math.max(0, Math.round(window.innerHeight - v.height - v.offsetTop)) }
+}
+
 function useVisualViewport() {
-  const [vv, setVv] = useState(() => ({ height: window.visualViewport?.height ?? window.innerHeight, top: 0 }))
+  const [vv, setVv] = useState(readViewport)
   useEffect(() => {
     const v = window.visualViewport
-    if (!v) return
-    const update = () => setVv({ height: v.height, top: v.offsetTop })
-    v.addEventListener('resize', update)
-    v.addEventListener('scroll', update)
+    const update = () => setVv(readViewport())
+    v?.addEventListener('resize', update)
+    v?.addEventListener('scroll', update)
+    window.addEventListener('resize', update)
     return () => {
-      v.removeEventListener('resize', update)
-      v.removeEventListener('scroll', update)
+      v?.removeEventListener('resize', update)
+      v?.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
     }
   }, [])
   return vv
@@ -71,13 +82,13 @@ export function ChatWorkspace({ activeId }: { activeId: string | null }) {
 
   return (
     <div
-      className="fixed inset-x-0 top-0 z-40 flex bg-surface lg:left-[280px]"
-      style={{ height: vv.height, transform: `translateY(${vv.top}px)` }}
+      className="chat-env fixed inset-x-0 z-40 flex bg-(--chat-main) text-ink lg:left-[280px]"
+      style={{ top: vv.top, bottom: vv.bottom }}
     >
       {/* Zoznam konverzácií */}
       <aside
         className={cn(
-          'flex w-full flex-col border-line bg-surface-2 lg:w-[340px] lg:shrink-0 lg:border-r',
+          'flex w-full flex-col border-line bg-(--chat-list) lg:w-[340px] lg:shrink-0 lg:border-r',
           activeId && 'hidden lg:flex',
         )}
       >
@@ -222,7 +233,7 @@ function Conversation({ channelId, teamId }: { channelId: string; teamId: string
   }
 
   return (
-    <section className="flex min-w-0 flex-1 flex-col bg-surface">
+    <section className="flex min-w-0 flex-1 flex-col bg-(--chat-main)">
       <header className="flex min-h-[64px] items-center gap-3 border-b border-line px-3 pt-[calc(10px+env(safe-area-inset-top))] pb-2.5 lg:px-5">
         <button
           type="button"
@@ -301,7 +312,7 @@ function Conversation({ channelId, teamId }: { channelId: string; teamId: string
         })}
       </div>
 
-      <div className="border-t border-line bg-surface px-3 pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))] lg:px-5 lg:pb-4">
+      <div className="px-3 pt-1.5 pb-[calc(10px+env(safe-area-inset-bottom))] lg:px-5 lg:pb-5">
         {channel.canPost ? (
           <Composer
             ref={composer}
@@ -315,7 +326,7 @@ function Conversation({ channelId, teamId }: { channelId: string; teamId: string
             }}
           />
         ) : (
-          <div className="flex items-center gap-3 rounded-[16px] bg-sunken px-4 py-3 text-[0.9rem] text-ink-2">
+          <div className="flex items-center gap-3 rounded-[16px] bg-(--chat-field) px-4 py-3 text-[0.9rem] text-ink-2">
             <Lock className="size-4 shrink-0" />
             {t('chat.readOnly')}
           </div>

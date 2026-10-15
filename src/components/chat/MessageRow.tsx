@@ -1,6 +1,7 @@
 import { useRef, type ReactNode } from 'react'
 import { CornerUpLeft, MoreHorizontal, SmilePlus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useRoleName } from '@/components/team/pickers'
 import { Avatar } from '@/components/ui/Identity'
 import type { ChatMessage, Member } from '@/data/types'
 import { cn } from '@/lib/cn'
@@ -48,6 +49,7 @@ export function MessageRow({
   const { t, i18n } = useTranslation()
   const press = useRef<{ timer: number; x: number; y: number; fired: boolean } | null>(null)
   const lastTap = useRef(0)
+  const roleName = useRoleName()
 
   const name = mine ? t('chat.you') : author?.profile.name || t('chat.unknown')
   const time = new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' }).format(new Date(message.createdAt))
@@ -140,9 +142,12 @@ export function MessageRow({
         </div>
         <div className="min-w-0 flex-1">
           {showHeader && (
-            <div className="flex items-baseline gap-2">
+            <div className="flex min-w-0 items-baseline gap-2">
               <span className={cn('truncate font-semibold', mine ? 'text-accent-ink' : 'text-ink')}>{name}</span>
-              <span className="shrink-0 text-[0.75rem] text-ink-3">{message.pending ? t('chat.sending') : time}</span>
+              {author && (
+                <span className="shrink-0 text-[0.66rem] font-bold tracking-[0.07em] text-ink-3 uppercase">{roleName(author.role)}</span>
+              )}
+              <span className="tnum shrink-0 text-[0.72rem] text-ink-3">{message.pending ? t('chat.sending') : time}</span>
             </div>
           )}
           <div className="leading-relaxed text-ink">
@@ -166,7 +171,7 @@ export function MessageRow({
                     }}
                     className={cn(
                       'flex h-7 items-center gap-1 rounded-full border px-2 text-[0.85rem] transition-colors',
-                      mineR ? 'border-accent bg-accent-soft text-accent-ink' : 'border-line bg-surface-2 text-ink-2 hover:border-line-strong',
+                      mineR ? 'border-accent bg-accent-soft text-accent-ink' : 'border-transparent bg-(--chat-field) text-ink-2 hover:border-line-strong',
                     )}
                   >
                     <span className="text-[1rem] leading-none">{r.emoji}</span>
@@ -181,7 +186,7 @@ export function MessageRow({
 
       {/* Na počítači: rýchle akcie pri prejdení myšou (ako v Discorde) */}
       {!message.pending && (
-        <div className="absolute -top-4 right-2 hidden items-center gap-0.5 rounded-[10px] border border-line bg-surface p-0.5 shadow-card group-hover:flex pointer-coarse:hidden!">
+        <div className="absolute -top-4 right-2 hidden items-center gap-0.5 rounded-[10px] border border-line bg-(--chat-field) p-0.5 shadow-float group-hover:flex pointer-coarse:hidden!">
           {QUICK_REACTIONS.slice(0, 3).map((e) => (
             <button
               key={e}
