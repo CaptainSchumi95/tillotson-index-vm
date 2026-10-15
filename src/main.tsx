@@ -11,7 +11,8 @@ import { qk, SAVE_NOTE_KEY, SAVE_SERVICE_KEY, SAVE_SETUP_KEY } from '@/data/quer
 import { ek, SET_ROUND_KEY, TOGGLE_CHECK_KEY, type RoundInput } from '@/data/events'
 import { SAVE_SESSION_KEY, sk } from '@/data/sessions'
 import { COMPLETE_ORDER_KEY, pk, type CompleteOrderInput } from '@/data/pressures'
-import type { CheckInput, KartNoteInput, ServiceEntryInput, SessionInput, SetupRevisionInput } from '@/data/types'
+import { ck, SEND_MESSAGE_KEY } from '@/data/chat'
+import type { MessageInput, CheckInput, KartNoteInput, ServiceEntryInput, SessionInput, SetupRevisionInput } from '@/data/types'
 import { QUERY_CACHE_KEY, QUERY_CACHE_SCHEMA } from '@/lib/cache'
 import { router } from '@/router'
 import '@/i18n'
@@ -58,6 +59,17 @@ queryClient.setMutationDefaults(COMPLETE_ORDER_KEY, {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: pk.orders(input.teamId) }),
       queryClient.invalidateQueries({ queryKey: qk.setup(input.revision.kartId) }),
+    ]),
+})
+// Správy: odošlú sa v poradí, v akom boli napísané.
+queryClient.setMutationDefaults(SEND_MESSAGE_KEY, {
+  ...offline,
+  scope: { id: 'chat' },
+  mutationFn: (input: MessageInput) => backend.sendMessage(input),
+  onSettled: (_d, _e, input: MessageInput) =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ck.messages(input.channelId) }),
+      queryClient.invalidateQueries({ queryKey: ck.overview(input.teamId) }),
     ]),
 })
 queryClient.setMutationDefaults(SAVE_NOTE_KEY, {

@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
 import { Link, Navigate, Outlet, useRouterState } from '@tanstack/react-router'
-import { ChevronDown, Flag, House, Route as RouteIcon, SlidersHorizontal, Users, type LucideIcon } from 'lucide-react'
+import { ChevronDown, MessageCircle, Flag, House, Route as RouteIcon, SlidersHorizontal, Users, type LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ContextSheet } from '@/components/ContextSheet'
+import { ChatButton, UnreadBadge } from '@/components/chat/chatHelpers'
+import { useChatLive, useUnreadTotal } from '@/data/chat'
 import { TiMark, TiWordmark, VilimCredit } from '@/components/ui/Brand'
 import { Avatar, KartPlate, TeamBadge } from '@/components/ui/Identity'
 import { FullScreenLoader } from '@/components/ui/Spinner'
@@ -56,19 +58,31 @@ export function AppShell() {
   return <Shell />
 }
 
+/** Otvorená konverzácia – bez spodnej navigácie, pole na písanie je úplne dole. */
+const CONVERSATION = /^\/chat\/[^/]+$/
+
 function Shell() {
   const contextOpen = useUi((s) => s.contextOpen)
   const setContextOpen = useUi((s) => s.setContextOpen)
+  const { team } = useCurrentTeam()
+  const inConversation = useRouterState({ select: (s) => CONVERSATION.test(s.location.pathname) })
+  // Nové správy naživo pre aktuálny tím (odznak pri ikone správ).
+  useChatLive(team?.id)
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[280px_1fr]">
       <Sidebar onSwitch={() => setContextOpen(true)} />
       <div className="min-w-0">
         <TopBar onSwitch={() => setContextOpen(true)} />
-        <main className="mx-auto w-full max-w-[880px] px-4 pt-3 pb-[calc(96px+env(safe-area-inset-bottom))] sm:px-6 lg:px-10 lg:pt-8 lg:pb-16">
+        <main
+          className={cn(
+            'mx-auto w-full max-w-[880px] px-4 pt-3 sm:px-6 lg:px-10',
+            inConversation ? 'pb-0 lg:pt-0' : 'pb-[calc(96px+env(safe-area-inset-bottom))] lg:pt-8 lg:pb-16',
+          )}
+        >
           <Outlet />
         </main>
       </div>
-      <BottomNav />
+      {!inConversation && <BottomNav />}
       <StatusToasts />
       <ContextSheet open={contextOpen} onOpenChange={setContextOpen} />
     </div>
@@ -109,9 +123,12 @@ function TopBar({ onSwitch }: { onSwitch: () => void }) {
     <div className="safe-top sticky top-0 z-30 border-b border-transparent bg-bg/85 backdrop-blur-xl lg:hidden">
       <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
         {onHome ? <TiMark className="h-7 text-brand" /> : <ContextButton onClick={onSwitch} compact />}
-        <Link to="/settings" aria-label="Profil" className="shrink-0 rounded-full">
-          <Avatar name={profile.data?.name ?? ''} url={profile.data?.avatarUrl} size="md" />
-        </Link>
+        <span className="flex shrink-0 items-center gap-1.5">
+          <ChatButton />
+          <Link to="/settings" aria-label="Profil" className="shrink-0 rounded-full">
+            <Avatar name={profile.data?.name ?? ''} url={profile.data?.avatarUrl} size="md" />
+          </Link>
+        </span>
       </div>
     </div>
   )
@@ -120,6 +137,8 @@ function TopBar({ onSwitch }: { onSwitch: () => void }) {
 function Sidebar({ onSwitch }: { onSwitch: () => void }) {
   const { t } = useTranslation()
   const profile = useProfile()
+  const { team } = useCurrentTeam()
+  const unread = useUnreadTotal(team?.id)
   return (
     <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-surface px-5 py-7 lg:flex">
       <Link to="/home" className="mb-8 block px-2 text-ink">
@@ -138,6 +157,15 @@ function Sidebar({ onSwitch }: { onSwitch: () => void }) {
             {t(`nav.${key}`)}
           </Link>
         ))}
+        <Link
+          to="/chat"
+          className="flex h-12 items-center gap-3.5 rounded-[14px] px-3.5 font-semibold text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+          activeProps={{ className: 'bg-accent-soft! text-accent-ink!' }}
+        >
+          <MessageCircle className="size-[22px]" strokeWidth={2} />
+          <span className="flex-1">{t('chat.title')}</span>
+          <UnreadBadge count={unread} />
+        </Link>
       </nav>
       <div className="mt-auto space-y-5">
         <Link

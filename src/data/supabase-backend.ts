@@ -3,6 +3,8 @@ import { normalizeUnitPrefs } from '@/lib/units'
 import type { AuthUser, Backend } from './backend'
 import {
   KNOWN_ERRORS,
+  type ChatChannel,
+  type ChatMessage,
   type ChecklistCheck,
   type ChecklistItem,
   type CustomSetupField,
@@ -45,6 +47,10 @@ function toPressures(v: Row | Row[] | null | undefined): SessionPressures | null
 }
 
 const num = (v: unknown) => (v == null ? null : Number(v))
+
+function toMessage(r: Row): ChatMessage {
+  return { id: r.id, channelId: r.channel_id, authorId: r.author_id, body: r.body, createdAt: r.created_at }
+}
 
 function toAuthor(r: Row | null) {
   return r ? { id: r.id as string, name: r.name as string, avatarUrl: r.avatar_url as string | null } : null
@@ -763,6 +769,79 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
 
     async cancelPressureOrder(orderId) {
       must(await sb.from('pressure_orders').update({ status: 'cancelled' }).eq('id', orderId).eq('status', 'pending'))
+    },
+
+    async chatOverview(teamId) {
+      const rows = must(await sb.rpc('chat_overview', { p_team: teamId })) as Row[]
+      return rows.map(
+        (r): ChatChannel => ({
+          id: r.channel_id,
+          kind: r.kind,
+          otherId: r.other_id,
+          postRoles: r.post_roles ?? [],
+          postProfiles: r.post_profiles ?? [],
+          canPost: r.can_post,
+          lastBody: r.last_body,
+          lastAt: r.last_at,
+          lastAuthorId: r.last_author,
+          unread: r.unread ?? 0,
+        }),
+      )
+    },
+
+    async listMessages(channelId) {
+      const rows = must(
+        await sb
+          .from('messages')
+          .select('id, channel_id, author_id, body, created_at')
+          .eq('channel_id', channelId)
+          .order('created_at', { ascending: false })
+          .limit(200),
+      ) as Row[]
+      return rows.map(toMessage).reverse()
+    },
+
+    async sendMessage(input) {
+      must(
+        await sb
+          .from('messages')
+          .upsert(
+            { id: input.id, channel_id: input.channelId, team_id: input.teamId, body: input.body, author_id: await uid() },
+            { onConflict: 'id', ignoreDuplicates: true },
+          ),
+      )
+    },
+
+    async deleteMessage(messageId) {
+      must(await sb.from('messages').delete().eq('id', messageId))
+    },
+
+    async markRead(channelId) {
+      must(
+        await sb
+          .from('channel_reads')
+          .upsert({ channel_id: channelId, profile_id: await uid(), last_read_at: new Date().toISOString() }, { onConflict: 'channel_id,profile_id' }),
+      )
+    },
+
+    async openDirect(teamId, profileId) {
+      return must(await sb.rpc('open_direct', { p_team: teamId, p_other: profileId })) as string
+    },
+
+    async updatePosters(channelId, roleIds, profileIds) {
+      must(await sb.from('channels').update({ post_roles: roleIds, post_profiles: profileIds }).eq('id', channelId))
+    },
+
+    subscribeChat(teamId, onMessage) {
+      const ch = sb
+        .channel(`chat:${teamId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `team_id=eq.${teamId}` },
+          (payload) => onMessage(toMessage(payload.new as Row)),
+        )
+        .subscribe()
+      return () => void sb.removeChannel(ch)
     },
 
     async completePressureOrder(orderId, revision) {

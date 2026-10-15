@@ -7,6 +7,8 @@ import { P_ATM, TIRES } from '@/lib/pressure'
 import type { AuthUser, Backend } from './backend'
 import {
   PERMISSIONS,
+  type ChatKind,
+  type ChatMessage,
   type ChecklistItem,
   type CustomSetupField,
   type ScheduleItem,
@@ -69,7 +71,19 @@ interface DemoVariant {
   updatedAt: string
 }
 
+interface DemoChannel {
+  id: string
+  teamId: string
+  kind: ChatKind
+  postRoles: string[]
+  postProfiles: string[]
+  members: string[]
+}
+
 interface DemoDb {
+  channels: DemoChannel[]
+  messages: (ChatMessage & { teamId: string })[]
+  reads: Record<string, string>
   pressures: Record<string, SessionPressures & { kartId: string }>
   orders: (Omit<PressureOrder, 'createdBy' | 'doneBy'> & { teamId: string; createdById: string; doneById: string | null })[]
   tracks: Track[]
@@ -316,6 +330,39 @@ function withPressures(base: Pick<DemoDb, 'sessions'>): Pick<DemoDb, 'sessions' 
   return { sessions: [...base.sessions, ...history], pressures, orders }
 }
 
+/** Nástenka a tímová skupina tímu (rovnako ako seed_channels() v databáze). */
+function teamChannels(teamId: string): DemoChannel[] {
+  return [
+    { id: teamId + '-ann', teamId, kind: 'announcements', postRoles: [teamId + '-manager', teamId + '-chief'], postProfiles: [], members: [] },
+    { id: teamId + '-team', teamId, kind: 'team', postRoles: [], postProfiles: [], members: [] },
+  ]
+}
+
+/** Vzorové správy: oznam na nástenke, skupina a priama konverzácia s Petrom. */
+function demoChat(): Pick<DemoDb, 'channels' | 'messages' | 'reads'> {
+  const teamId = 'team-demo'
+  const minAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString()
+  const msg = (id: string, channelId: string, authorId: string, body: string, m: number) => ({
+    id, channelId, teamId, authorId, body, createdAt: minAgo(m),
+  })
+  const dm = 'dm-peter'
+  return {
+    channels: [
+      ...teamChannels(teamId),
+      { id: dm, teamId, kind: 'direct', postRoles: [], postProfiles: [], members: [ME, 'p-peter'] },
+    ],
+    messages: [
+      msg('msg-1', teamId + '-ann', ME, 'Vitajte v aplikácii! Pred každou jazdou prejdite checklist a po jazde zapíšte čas a tlaky.', 60 * 26),
+      msg('msg-2', teamId + '-ann', ME, 'Zajtra zraz o 7:00 pri depe č. 14. Technická prebierka do 8:30.', 60 * 3),
+      msg('msg-3', teamId + '-team', 'p-peter', 'Má niekto náhradnú reťaz 219?', 95),
+      msg('msg-4', teamId + '-team', 'p-adam', 'Ja mám jednu v kufri 👍', 90),
+      msg('msg-5', teamId + '-team', 'p-peter', 'Super, ďakujem!', 88),
+      msg('msg-6', dm, 'p-peter', 'Tlaky na 95 som nastavil podľa inžiniera, pozri prosím ešte napnutie reťaze.', 12),
+    ],
+    reads: { [teamId + '-ann']: minAgo(60 * 5) },
+  }
+}
+
 function seed(): DemoDb {
   const teamId = 'team-demo'
   const profile: Profile = {
@@ -349,6 +396,7 @@ function seed(): DemoDb {
     ...demoSessions(),
     ...demoTracks(),
     ...withPressures(demoSessions()),
+    ...demoChat(),
     karts: [
       { id: 'kart-95', teamId, number: '95', driverName: 'Adam' },
       { id: 'kart-51', teamId, number: '51', driverName: 'Ema' },
@@ -360,7 +408,7 @@ function seed(): DemoDb {
 function load(): DemoDb {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return { ...demoSetup(), ...demoNotesService(), ...demoEvents(), ...withPressures(demoSessions()), ...demoTracks(), ...(JSON.parse(raw) as DemoDb) }
+    if (raw) return { ...demoSetup(), ...demoNotesService(), ...demoEvents(), ...withPressures(demoSessions()), ...demoTracks(), ...demoChat(), ...(JSON.parse(raw) as DemoDb) }
   } catch {
     /* poškodené dáta – začneme odznova */
   }
@@ -388,6 +436,7 @@ function ensureManager(db: DemoDb, teamId: string) {
 }
 
 export function createDemoBackend(): Backend {
+  const chatListeners = new Map<string, Set<(m: ChatMessage) => void>>()
   const listeners = new Set<(u: AuthUser | null) => void>()
   const emit = (u: AuthUser | null) => listeners.forEach((cb) => cb(u))
 
@@ -466,6 +515,7 @@ export function createDemoBackend(): Backend {
         db.teams.push({ id: teamId, name, color, iconUrl: null })
         db.roles.push(...defaultRoles(teamId))
         db.checklist.push(...defaultChecklist(teamId))
+        db.channels.push(...teamChannels(teamId))
         db.members.push({ id: uid(), teamId, profile: db.profile, roleId: `${teamId}-manager`, kartIds: [] })
       })
       return teamId
@@ -498,6 +548,8 @@ export function createDemoBackend(): Backend {
         db.sessions = db.sessions.filter((s) => !kartIds.has(s.kartId))
         db.tracks = db.tracks.filter((t) => t.teamId !== teamId)
         db.trackSetups = db.trackSetups.filter((t) => t.teamId !== teamId)
+        db.channels = db.channels.filter((c) => c.teamId !== teamId)
+        db.messages = db.messages.filter((m) => m.teamId !== teamId)
       })
     },
 
@@ -968,6 +1020,87 @@ export function createDemoBackend(): Backend {
         const o = db.orders.find((x) => x.id === orderId)
         if (o?.status === 'pending') o.status = 'cancelled'
       })
+    },
+
+    async chatOverview(teamId) {
+      await delay()
+      const db = load()
+      const myRole = db.members.find((m) => m.teamId === teamId && m.profile.id === ME)?.roleId
+      return db.channels
+        .filter((c) => c.teamId === teamId && (c.kind !== 'direct' || c.members.includes(ME)))
+        .map((c) => {
+          const msgs = db.messages.filter((m) => m.channelId === c.id).sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+          const last = msgs.at(-1)
+          const readAt = db.reads[c.id] ?? ''
+          return {
+            id: c.id,
+            kind: c.kind,
+            otherId: c.kind === 'direct' ? (c.members.find((x) => x !== ME) ?? null) : null,
+            postRoles: c.postRoles,
+            postProfiles: c.postProfiles,
+            canPost: c.kind !== 'announcements' || c.postProfiles.includes(ME) || (!!myRole && c.postRoles.includes(myRole)),
+            lastBody: last?.body ?? null,
+            lastAt: last?.createdAt ?? null,
+            lastAuthorId: last?.authorId ?? null,
+            unread: msgs.filter((m) => m.authorId !== ME && m.createdAt > readAt).length,
+          }
+        })
+    },
+
+    async listMessages(channelId) {
+      await delay()
+      return load()
+        .messages.filter((m) => m.channelId === channelId)
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+        .map(({ teamId: _t, ...m }) => m)
+    },
+
+    async sendMessage(input) {
+      await delay()
+      const message = { id: input.id, channelId: input.channelId, authorId: ME, body: input.body, createdAt: new Date().toISOString() }
+      const added = mutate((db) => {
+        if (db.messages.some((m) => m.id === input.id)) return false
+        db.messages.push({ ...message, teamId: input.teamId })
+        return true
+      })
+      if (added) chatListeners.get(input.teamId)?.forEach((cb) => cb(message))
+    },
+
+    async deleteMessage(messageId) {
+      await delay()
+      mutate((db) => (db.messages = db.messages.filter((m) => m.id !== messageId)))
+    },
+
+    async markRead(channelId) {
+      mutate((db) => (db.reads[channelId] = new Date().toISOString()))
+    },
+
+    async openDirect(teamId, profileId) {
+      await delay()
+      return mutate((db) => {
+        const existing = db.channels.find(
+          (c) => c.teamId === teamId && c.kind === 'direct' && c.members.includes(ME) && c.members.includes(profileId),
+        )
+        if (existing) return existing.id
+        const id = uid()
+        db.channels.push({ id, teamId, kind: 'direct', postRoles: [], postProfiles: [], members: [ME, profileId] })
+        return id
+      })
+    },
+
+    async updatePosters(channelId, roleIds, profileIds) {
+      await delay()
+      mutate((db) => {
+        const c = db.channels.find((x) => x.id === channelId)
+        if (c) Object.assign(c, { postRoles: roleIds, postProfiles: profileIds })
+      })
+    },
+
+    subscribeChat(teamId, onMessage) {
+      const set = chatListeners.get(teamId) ?? new Set()
+      set.add(onMessage)
+      chatListeners.set(teamId, set)
+      return () => void set.delete(onMessage)
     },
 
     async completePressureOrder(orderId, revision) {

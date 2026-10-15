@@ -1,4 +1,7 @@
 import type {
+  ChatChannel,
+  ChatMessage,
+  MessageInput,
   ChecklistCheck,
   ChecklistItem,
   CheckInput,
@@ -146,4 +149,19 @@ export interface Backend {
   cancelPressureOrder(orderId: string): Promise<void>
   /** Mechanik natlakoval: uloží revíziu setupu (idempotentne) a označí príkaz za vybavený. */
   completePressureOrder(orderId: string, revision: SetupRevisionInput): Promise<void>
+
+  /** Konverzácie tímu (nástenka, skupina, priame) s poslednou správou a neprečítanými. */
+  chatOverview(teamId: string): Promise<ChatChannel[]>
+  /** Posledné správy konverzácie (najstaršia prvá). */
+  listMessages(channelId: string): Promise<ChatMessage[]>
+  /** Idempotentné (id generuje aplikácia) – bezpečné pri slabom signáli. */
+  sendMessage(input: MessageInput): Promise<void>
+  deleteMessage(messageId: string): Promise<void>
+  markRead(channelId: string): Promise<void>
+  /** Priama konverzácia s členom tímu – vytvorí sa iba raz. */
+  openDirect(teamId: string, profileId: string): Promise<string>
+  /** Kto smie písať na nástenku. */
+  updatePosters(channelId: string, roleIds: string[], profileIds: string[]): Promise<void>
+  /** Nové správy v tíme naživo. Vráti funkciu na odhlásenie. */
+  subscribeChat(teamId: string, onMessage: (message: ChatMessage) => void): () => void
 }

@@ -331,3 +331,41 @@ export type PressureOrderInput = Pick<
   PressureOrder,
   'kartId' | 'eventId' | 'values' | 'targetHot' | 'airTemp' | 'trackTemp' | 'note'
 >
+
+// ───────────── Správy ─────────────
+
+export type ChatKind = 'announcements' | 'team' | 'direct'
+
+/** Konverzácia v zozname: posledná správa a neprečítané. */
+export interface ChatChannel {
+  id: string
+  kind: ChatKind
+  /** Pri priamej konverzácii – druhý človek. */
+  otherId: string | null
+  /** Nástenka: roly a ľudia, ktorí smú písať. */
+  postRoles: string[]
+  postProfiles: string[]
+  canPost: boolean
+  lastBody: string | null
+  lastAt: string | null
+  lastAuthorId: string | null
+  unread: number
+}
+
+export interface ChatMessage {
+  id: string
+  channelId: string
+  authorId: string | null
+  body: string
+  createdAt: string
+  /** Ešte neodoslaná (slabý signál). */
+  pending?: boolean
+}
+
+export interface MessageInput {
+  id: string
+  teamId: string
+  channelId: string
+  body: string
+  createdAt: string
+}

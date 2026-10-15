@@ -13,6 +13,9 @@ import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotesPage } from '@/pages/NotesPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
+import { ChatChannelPage } from '@/pages/ChatChannelPage'
+import { ChatPage } from '@/pages/ChatPage'
+import { ChatSettingsPage } from '@/pages/ChatSettingsPage'
 import { PressureStatsPage } from '@/pages/PressureStatsPage'
 import { PressuresPage } from '@/pages/PressuresPage'
 import { ServicePage } from '@/pages/ServicePage'
@@ -113,6 +116,9 @@ const routeTree = rootRoute.addChildren([
   privacyRoute,
   shellRoute.addChildren([
     page('/home', HomePage),
+    page('/chat', ChatPage),
+    page('/chat/$channelId', ChatChannelPage),
+    page('/chat/$channelId/settings', ChatSettingsPage),
     page('/notes', NotesPage),
     page('/service', ServicePage),
     page('/weekend', WeekendPage),
