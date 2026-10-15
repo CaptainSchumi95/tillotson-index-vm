@@ -7,7 +7,7 @@ export function hexToRgb(hex: string): RGB {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
 }
 
-function rgbToHex([r, g, b]: RGB): string {
+export function rgbToHex([r, g, b]: RGB): string {
   return '#' + [r, g, b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')
 }
 
@@ -101,3 +101,77 @@ export const TEAM_COLORS = [
   '#15803d', '#65a30d', '#ca8a04', '#ea580c',
   '#dc2626', '#be185d', '#7c3aed', '#27272a',
 ]
+
+/** Hex kód z textu: „E30613“, „#e30613“, „#e06“ → „#e30613“ (inak null). */
+export function normalizeHex(input: string): string | null {
+  let s = input.trim().replace(/^#/, '').toLowerCase()
+  if (/^[0-9a-f]{3}$/.test(s)) s = s.replace(/./g, (c) => c + c)
+  return /^[0-9a-f]{6}$/.test(s) ? '#' + s : null
+}
+
+export type CMYK = [number, number, number, number]
+
+/** CMYK v percentách (0–100) – len orientačne, tlač má vlastné profily. */
+export function rgbToCmyk([r, g, b]: RGB): CMYK {
+  const k = 1 - Math.max(r, g, b) / 255
+  if (k >= 1) return [0, 0, 0, 100]
+  const f = (c: number) => Math.round(((1 - c / 255 - k) / (1 - k)) * 100)
+  return [f(r), f(g), f(b), Math.round(k * 100)]
+}
+
+export function cmykToRgb([c, m, y, k]: CMYK): RGB {
+  const f = (v: number) => Math.round(255 * (1 - v / 100) * (1 - k / 100))
+  return [f(c), f(m), f(y)]
+}
+
+/** HSV: odtieň 0–360, sýtosť a jas 0–1 (pre plochu výberu farby). */
+export function rgbToHsv([r, g, b]: RGB): [number, number, number] {
+  const [R, G, B] = [r / 255, g / 255, b / 255]
+  const max = Math.max(R, G, B)
+  const d = max - Math.min(R, G, B)
+  let h = 0
+  if (d) h = max === R ? ((G - B) / d) % 6 : max === G ? (B - R) / d + 2 : (R - G) / d + 4
+  return [(h * 60 + 360) % 360, max ? d / max : 0, max]
+}
+
+export function hsvToRgb([h, s, v]: [number, number, number]): RGB {
+  const f = (n: number) => {
+    const k = (n + h / 60) % 6
+    return Math.round(255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1))))
+  }
+  return [f(5), f(3), f(1)]
+}
+
+/**
+ * Hlavné farby obrázka (napr. loga) – najčastejšie farby, sýte majú prednosť
+ * pred bielou, čiernou a sivou. Vráti hex kódy, najvýraznejšie prvé.
+ */
+export function dominantColors(data: Uint8ClampedArray, count = 6): string[] {
+  const buckets = new Map<number, { r: number; g: number; b: number; n: number }>()
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 160) continue
+    const key = ((data[i] >> 4) << 8) | ((data[i + 1] >> 4) << 4) | (data[i + 2] >> 4)
+    const bucket = buckets.get(key) ?? { r: 0, g: 0, b: 0, n: 0 }
+    bucket.r += data[i]
+    bucket.g += data[i + 1]
+    bucket.b += data[i + 2]
+    bucket.n++
+    buckets.set(key, bucket)
+  }
+  // Prechodové odtiene na hranách (napr. ružová medzi červenou a bielou) majú len pár pixelov.
+  const total = [...buckets.values()].reduce((sum, x) => sum + x.n, 0)
+  const ranked = [...buckets.values()]
+    .filter((x) => x.n >= total * 0.006)
+    .map((x) => {
+      const rgb: RGB = [x.r / x.n, x.g / x.n, x.b / x.n]
+      const [, s, v] = rgbToHsv(rgb)
+      return { rgb, score: x.n * (0.25 + s * Math.min(1, v * 1.6)) }
+    })
+    .sort((a, b) => b.score - a.score)
+  const out: RGB[] = []
+  for (const c of ranked) {
+    if (out.every((o) => Math.hypot(o[0] - c.rgb[0], o[1] - c.rgb[1], o[2] - c.rgb[2]) > 48)) out.push(c.rgb)
+    if (out.length >= count) break
+  }
+  return out.map(rgbToHex)
+}

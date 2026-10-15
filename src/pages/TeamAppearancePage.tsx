@@ -68,7 +68,7 @@ export function TeamAppearancePage() {
         <Field label={t('onboarding.teamName')} value={name} onChange={(e) => setName(e.target.value)} maxLength={80} />
 
         <Section title={t('onboarding.teamColor')}>
-          <ColorPicker value={color} onChange={setColor} />
+          <ColorPicker value={color} onChange={setColor} logoUrl={iconUrl} />
         </Section>
 
         <Section title={t('team.icon')}>

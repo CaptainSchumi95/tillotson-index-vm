@@ -35,5 +35,12 @@ export function accentVars(color: string): CSSProperties {
     ['--accent' as string]: color,
     ['--on-accent' as string]: onColor(color),
     ['--accent-soft' as string]: `color-mix(in oklab, ${color} 13%, var(--surface))`,
+    // Odvodené prechody sa musia prepočítať aj tu – inak by ostali vo farbe aktuálneho tímu.
+    ['--accent-hi' as string]: `color-mix(in oklab, ${color} 74%, white)`,
+    ['--accent-lo' as string]: `color-mix(in oklab, ${color} 80%, black)`,
+    ['--accent-glow' as string]: `color-mix(in oklab, ${color} 42%, transparent)`,
+    ['--accent-fill' as string]: 'linear-gradient(140deg, var(--accent-hi) 0%, var(--accent) 50%, var(--accent-lo) 100%)',
+    ['--accent-tonal' as string]:
+      'linear-gradient(140deg, color-mix(in oklab, var(--accent) 22%, var(--surface)), var(--accent-soft) 70%)',
   }
 }

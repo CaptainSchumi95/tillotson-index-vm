@@ -470,6 +470,27 @@ const sk = {
     },
   },
 
+  color: {
+    custom: 'Vlastná farba',
+    hex: 'HEX kód',
+    hexHint: 'Oficiálny kód farby tímu, napr. #E30613',
+    picker: 'Výber',
+    rgb: 'RGB',
+    cmyk: 'CMYK',
+    cmykHint: 'CMYK je orientačný – na tlač ho over u tlačiarne.',
+    fromImage: 'Z loga alebo fotky',
+    fromScreen: 'Z obrazovky',
+    imageTitle: 'Farba z obrázka',
+    imageHint: 'Ťukni alebo prejdi prstom po mieste, ktorého farbu chceš.',
+    takePhoto: 'Odfotiť',
+    chooseImage: 'Vybrať obrázok',
+    teamLogo: 'Logo tímu',
+    suggested: 'Hlavné farby obrázka',
+    use: 'Použiť farbu',
+    unreadable: 'Z tohto obrázka sa farba nedá prečítať. Vyber ho ako súbor alebo ho odfoť.',
+    emptyImage: 'Odfoť logo tímu alebo vyber obrázok – farbu z neho vyberieš ťuknutím.',
+  },
+
   notes: {
     title: 'Poznámky jazdca',
     placeholder: 'Ako sa motokára jazdila? Čo si jazdec všimol?',
