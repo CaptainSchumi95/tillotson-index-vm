@@ -548,6 +548,7 @@ const sk = {
     location: 'Miesto',
     locationPlaceholder: 'napr. Trnava, SK',
     length: 'Dĺžka (m)',
+    lengthLabel: 'Dĺžka',
     delete: 'Odstrániť trať',
     deleteConfirm: 'Trať „{{name}}“ sa zmaže aj so všetkými setupmi tímu, ktoré sú k nej uložené.',
     noResults: 'Žiadna trať nezodpovedá hľadaniu.',

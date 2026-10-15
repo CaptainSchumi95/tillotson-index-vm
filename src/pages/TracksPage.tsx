@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { MapPin, Plus, Route as RouteIcon, Search } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { Layers, Plus, Route as RouteIcon, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { Badge, Card, Section } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Field } from '@/components/ui/Field'
-import { ListGroup, ListRow, RowIcon } from '@/components/ui/ListRow'
+import { TrackPoster } from '@/components/tracks/TrackPoster'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Sheet } from '@/components/ui/Sheet'
 import { FullScreenLoader } from '@/components/ui/Spinner'
@@ -114,22 +115,35 @@ export function TracksPage() {
   const shared = list.filter((tr) => !tr.teamId)
   const countOf = (id: string) => (setups.data ?? []).filter((s) => s.trackId === id).length
 
-  const row = (tr: Track) => {
+  const poster = (tr: Track, i: number) => {
     const count = countOf(tr.id)
     return (
-      <ListRow
+      <Link
         key={tr.id}
-        leading={
-          <RowIcon tone={count > 0 ? 'accent' : 'neutral'}>
-            <MapPin className="size-5" />
-          </RowIcon>
-        }
-        title={tr.name}
-        subtitle={[tr.location, t('tracks.setupCount', { count })].filter(Boolean).join(' · ')}
-        to={`/tracks/${tr.id}`}
-      />
+        to="/tracks/$trackId"
+        params={{ trackId: tr.id }}
+        className="group animate-rise block min-w-0"
+        style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+      >
+        <span className="card-lift block overflow-hidden rounded-[16px] shadow-card ring-1 ring-line">
+          <TrackPoster track={tr} />
+        </span>
+        <span className="mt-2 flex items-center gap-1.5 px-0.5 text-[0.82rem]">
+          {count > 0 ? (
+            <span className="inline-flex items-center gap-1 font-semibold text-accent-ink">
+              <Layers className="size-3.5" />
+              {t('tracks.setupCount', { count })}
+            </span>
+          ) : (
+            <span className="text-ink-3">{t('tracks.setupCount', { count })}</span>
+          )}
+        </span>
+      </Link>
     )
   }
+  const grid = (items: Track[]) => (
+    <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4">{items.map(poster)}</div>
+  )
 
   return (
     <>
@@ -160,12 +174,12 @@ export function TracksPage() {
       <div className="space-y-8">
         {ours.length > 0 && (
           <Section title={t('tracks.ours')}>
-            <ListGroup>{ours.map(row)}</ListGroup>
+            {grid(ours)}
           </Section>
         )}
         {shared.length > 0 && (
           <Section title={t('tracks.shared')} action={<Badge>{shared.length}</Badge>}>
-            <ListGroup>{shared.map(row)}</ListGroup>
+            {grid(shared)}
           </Section>
         )}
         {list.length === 0 && <Card className="p-6 text-center text-ink-3">{t('tracks.noResults')}</Card>}

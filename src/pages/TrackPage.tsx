@@ -12,6 +12,7 @@ import { FullScreenLoader } from '@/components/ui/Spinner'
 import { safe, useCan, useCurrentKart, useCurrentTeam } from '@/data/queries'
 import { useDeleteTrack, useTrackSetups, useTracks } from '@/data/tracks'
 import { relativeTime } from '@/lib/time'
+import { TrackPoster } from '@/components/tracks/TrackPoster'
 import { TrackSheet } from './TracksPage'
 
 /** Detail trate a setupy tímu k nej (/tracks/$trackId). */
@@ -63,17 +64,34 @@ export function TrackPage() {
         }
       />
 
-      {(track.location || track.lengthM) && (
-        <div className="-mt-3 mb-8 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-ink-2">
-          {track.location && (
-            <span className="inline-flex items-center gap-1.5">
-              <MapPin className="size-4 text-ink-3" />
-              {track.location}
-            </span>
-          )}
-          {track.lengthM && <span className="tnum">{new Intl.NumberFormat(i18n.language).format(track.lengthM)} m</span>}
+      <div className="-mt-2 mb-8 flex items-end gap-5">
+        <div className="w-[42%] max-w-[220px] shrink-0 overflow-hidden rounded-[18px] shadow-float ring-1 ring-line">
+          <TrackPoster track={track} />
         </div>
-      )}
+        <dl className="min-w-0 flex-1 space-y-4 pb-1">
+          {track.location && (
+            <div>
+              <dt className="eyebrow mb-1">{t('tracks.location')}</dt>
+              <dd className="flex items-start gap-1.5 font-medium text-ink">
+                <MapPin className="mt-0.5 size-4 shrink-0 text-ink-3" />
+                {track.location}
+              </dd>
+            </div>
+          )}
+          {track.lengthM && (
+            <div>
+              <dt className="eyebrow mb-1">{t('tracks.lengthLabel')}</dt>
+              <dd className="display tnum text-gradient text-[1.6rem] leading-none">
+                {new Intl.NumberFormat(i18n.language).format(track.lengthM)} m
+              </dd>
+            </div>
+          )}
+          <div>
+            <dt className="eyebrow mb-1">{t('tracks.setups')}</dt>
+            <dd className="display tnum text-gradient text-[2.4rem] leading-none">{list.length}</dd>
+          </div>
+        </dl>
+      </div>
 
       <div className="space-y-8">
         <Section title={t('tracks.setups')}>
